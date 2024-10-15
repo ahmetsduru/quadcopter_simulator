@@ -1,0 +1,10 @@
+<launch>
+    <!-- Load the configuration parameters from the YAML file -->
+    <rosparam file="$(find quadcopter_control)/config/quadcopter_control.yaml" command="load" />
+
+    <!-- Start the hover node -->
+    <node pkg="quadcopter_control" type="hover" name="hover" output="screen" />
+
+    <!-- Start the real_time_control node -->
+    <node pkg="quadcopter_control" type="real_time_control" name="real_time_control" output="screen" />
+</launch>

@@ -1,0 +1,67 @@
+[
+{
+  "directory": "/home/asd/catkin_ws/src/quadcopter_control/build",
+  "command": "/usr/lib/ccache/c++  -DROSCONSOLE_BACKEND_LOG4CXX -DROS_BUILD_SHARED_LIBS=1 -DROS_PACKAGE_NAME=\\\"quadcopter_control\\\" -I/home/asd/catkin_ws/src/quadcopter_control/include -I/home/asd/catkin_ws/devel/include -I/home/asd/catkin_ws/src/mavros/mavros_msgs/include -I/opt/ros/noetic/include -I/opt/ros/noetic/share/xmlrpcpp/cmake/../../../include/xmlrpcpp -I/usr/include/eigen3  -g   -o CMakeFiles/data_logger.dir/src/data_logger.cpp.o -c /home/asd/catkin_ws/src/quadcopter_control/src/data_logger.cpp",
+  "file": "/home/asd/catkin_ws/src/quadcopter_control/src/data_logger.cpp"
+},
+{
+  "directory": "/home/asd/catkin_ws/src/quadcopter_control/build",
+  "command": "/usr/lib/ccache/c++  -DROSCONSOLE_BACKEND_LOG4CXX -DROS_BUILD_SHARED_LIBS=1 -DROS_PACKAGE_NAME=\\\"quadcopter_control\\\" -I/home/asd/catkin_ws/src/quadcopter_control/include -I/home/asd/catkin_ws/devel/include -I/home/asd/catkin_ws/src/mavros/mavros_msgs/include -I/opt/ros/noetic/include -I/opt/ros/noetic/share/xmlrpcpp/cmake/../../../include/xmlrpcpp -I/usr/include/eigen3  -g   -o CMakeFiles/rviz_data.dir/src/rviz_data.cpp.o -c /home/asd/catkin_ws/src/quadcopter_control/src/rviz_data.cpp",
+  "file": "/home/asd/catkin_ws/src/quadcopter_control/src/rviz_data.cpp"
+},
+{
+  "directory": "/home/asd/catkin_ws/src/quadcopter_control/build",
+  "command": "/usr/lib/ccache/c++  -DROSCONSOLE_BACKEND_LOG4CXX -DROS_BUILD_SHARED_LIBS=1 -DROS_PACKAGE_NAME=\\\"quadcopter_control\\\" -I/home/asd/catkin_ws/src/quadcopter_control/include -I/home/asd/catkin_ws/devel/include -I/home/asd/catkin_ws/src/mavros/mavros_msgs/include -I/opt/ros/noetic/include -I/opt/ros/noetic/share/xmlrpcpp/cmake/../../../include/xmlrpcpp -I/usr/include/eigen3  -g   -o CMakeFiles/circle_heli_traj.dir/src/circle_heli_traj.cpp.o -c /home/asd/catkin_ws/src/quadcopter_control/src/circle_heli_traj.cpp",
+  "file": "/home/asd/catkin_ws/src/quadcopter_control/src/circle_heli_traj.cpp"
+},
+{
+  "directory": "/home/asd/catkin_ws/src/quadcopter_control/build",
+  "command": "/usr/lib/ccache/c++  -DROSCONSOLE_BACKEND_LOG4CXX -DROS_BUILD_SHARED_LIBS=1 -DROS_PACKAGE_NAME=\\\"quadcopter_control\\\" -I/home/asd/catkin_ws/src/quadcopter_control/include -I/home/asd/catkin_ws/devel/include -I/home/asd/catkin_ws/src/mavros/mavros_msgs/include -I/opt/ros/noetic/include -I/opt/ros/noetic/share/xmlrpcpp/cmake/../../../include/xmlrpcpp -I/usr/include/eigen3  -g   -o CMakeFiles/circle_traj.dir/src/circle_traj.cpp.o -c /home/asd/catkin_ws/src/quadcopter_control/src/circle_traj.cpp",
+  "file": "/home/asd/catkin_ws/src/quadcopter_control/src/circle_traj.cpp"
+},
+{
+  "directory": "/home/asd/catkin_ws/src/quadcopter_control/build",
+  "command": "/usr/lib/ccache/c++  -DROSCONSOLE_BACKEND_LOG4CXX -DROS_BUILD_SHARED_LIBS=1 -DROS_PACKAGE_NAME=\\\"quadcopter_control\\\" -I/home/asd/catkin_ws/src/quadcopter_control/include -I/home/asd/catkin_ws/devel/include -I/home/asd/catkin_ws/src/mavros/mavros_msgs/include -I/opt/ros/noetic/include -I/opt/ros/noetic/share/xmlrpcpp/cmake/../../../include/xmlrpcpp -I/usr/include/eigen3  -g   -o CMakeFiles/eom.dir/src/eom.cpp.o -c /home/asd/catkin_ws/src/quadcopter_control/src/eom.cpp",
+  "file": "/home/asd/catkin_ws/src/quadcopter_control/src/eom.cpp"
+},
+{
+  "directory": "/home/asd/catkin_ws/src/quadcopter_control/build",
+  "command": "/usr/lib/ccache/c++  -DROSCONSOLE_BACKEND_LOG4CXX -DROS_BUILD_SHARED_LIBS=1 -DROS_PACKAGE_NAME=\\\"quadcopter_control\\\" -I/home/asd/catkin_ws/src/quadcopter_control/include -I/home/asd/catkin_ws/devel/include -I/home/asd/catkin_ws/src/mavros/mavros_msgs/include -I/opt/ros/noetic/include -I/opt/ros/noetic/share/xmlrpcpp/cmake/../../../include/xmlrpcpp -I/usr/include/eigen3  -g   -o CMakeFiles/trajectory_generator.dir/src/trajectory_generator.cpp.o -c /home/asd/catkin_ws/src/quadcopter_control/src/trajectory_generator.cpp",
+  "file": "/home/asd/catkin_ws/src/quadcopter_control/src/trajectory_generator.cpp"
+},
+{
+  "directory": "/home/asd/catkin_ws/src/quadcopter_control/build",
+  "command": "/usr/lib/ccache/c++  -DROSCONSOLE_BACKEND_LOG4CXX -DROS_BUILD_SHARED_LIBS=1 -DROS_PACKAGE_NAME=\\\"quadcopter_control\\\" -I/home/asd/catkin_ws/src/quadcopter_control/include -I/home/asd/catkin_ws/devel/include -I/home/asd/catkin_ws/src/mavros/mavros_msgs/include -I/opt/ros/noetic/include -I/opt/ros/noetic/share/xmlrpcpp/cmake/../../../include/xmlrpcpp -I/usr/include/eigen3  -g   -o CMakeFiles/mid_level_cont.dir/src/mid_level_cont.cpp.o -c /home/asd/catkin_ws/src/quadcopter_control/src/mid_level_cont.cpp",
+  "file": "/home/asd/catkin_ws/src/quadcopter_control/src/mid_level_cont.cpp"
+},
+{
+  "directory": "/home/asd/catkin_ws/src/quadcopter_control/build",
+  "command": "/usr/lib/ccache/c++  -DROSCONSOLE_BACKEND_LOG4CXX -DROS_BUILD_SHARED_LIBS=1 -DROS_PACKAGE_NAME=\\\"quadcopter_control\\\" -I/home/asd/catkin_ws/src/quadcopter_control/include -I/home/asd/catkin_ws/devel/include -I/home/asd/catkin_ws/src/mavros/mavros_msgs/include -I/opt/ros/noetic/include -I/opt/ros/noetic/share/xmlrpcpp/cmake/../../../include/xmlrpcpp -I/usr/include/eigen3  -g   -o CMakeFiles/real_time_control.dir/src/real_time_control.cpp.o -c /home/asd/catkin_ws/src/quadcopter_control/src/real_time_control.cpp",
+  "file": "/home/asd/catkin_ws/src/quadcopter_control/src/real_time_control.cpp"
+},
+{
+  "directory": "/home/asd/catkin_ws/src/quadcopter_control/build",
+  "command": "/usr/lib/ccache/c++  -DROSCONSOLE_BACKEND_LOG4CXX -DROS_BUILD_SHARED_LIBS=1 -DROS_PACKAGE_NAME=\\\"quadcopter_control\\\" -I/home/asd/catkin_ws/src/quadcopter_control/include -I/home/asd/catkin_ws/devel/include -I/home/asd/catkin_ws/src/mavros/mavros_msgs/include -I/opt/ros/noetic/include -I/opt/ros/noetic/share/xmlrpcpp/cmake/../../../include/xmlrpcpp -I/usr/include/eigen3  -g   -o CMakeFiles/low_level_cont.dir/src/low_level_cont.cpp.o -c /home/asd/catkin_ws/src/quadcopter_control/src/low_level_cont.cpp",
+  "file": "/home/asd/catkin_ws/src/quadcopter_control/src/low_level_cont.cpp"
+},
+{
+  "directory": "/home/asd/catkin_ws/src/quadcopter_control/build/gtest/googlemock",
+  "command": "/usr/lib/ccache/c++  -DGTEST_CREATE_SHARED_LIBRARY=1 -Dgmock_main_EXPORTS -isystem /usr/src/googletest/googlemock/include -isystem /usr/src/googletest/googlemock -isystem /usr/src/googletest/googletest/include -isystem /usr/src/googletest/googletest  -g -fPIC   -Wall -Wshadow -Wno-error=dangling-else -DGTEST_HAS_PTHREAD=1 -fexceptions -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -DGTEST_HAS_PTHREAD=1 -std=c++11 -o CMakeFiles/gmock_main.dir/src/gmock_main.cc.o -c /usr/src/googletest/googlemock/src/gmock_main.cc",
+  "file": "/usr/src/googletest/googlemock/src/gmock_main.cc"
+},
+{
+  "directory": "/home/asd/catkin_ws/src/quadcopter_control/build/gtest/googlemock",
+  "command": "/usr/lib/ccache/c++  -DGTEST_CREATE_SHARED_LIBRARY=1 -Dgmock_EXPORTS -I/usr/src/googletest/googlemock/include -I/usr/src/googletest/googlemock -isystem /usr/src/googletest/googletest/include -isystem /usr/src/googletest/googletest  -g -fPIC   -Wall -Wshadow -Wno-error=dangling-else -DGTEST_HAS_PTHREAD=1 -fexceptions -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -DGTEST_HAS_PTHREAD=1 -std=c++11 -o CMakeFiles/gmock.dir/src/gmock-all.cc.o -c /usr/src/googletest/googlemock/src/gmock-all.cc",
+  "file": "/usr/src/googletest/googlemock/src/gmock-all.cc"
+},
+{
+  "directory": "/home/asd/catkin_ws/src/quadcopter_control/build/gtest/googletest",
+  "command": "/usr/lib/ccache/c++  -DGTEST_CREATE_SHARED_LIBRARY=1 -Dgtest_main_EXPORTS -isystem /usr/src/googletest/googletest/include -isystem /usr/src/googletest/googletest  -g -fPIC   -Wall -Wshadow -Wno-error=dangling-else -DGTEST_HAS_PTHREAD=1 -fexceptions -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -DGTEST_HAS_PTHREAD=1 -std=c++11 -o CMakeFiles/gtest_main.dir/src/gtest_main.cc.o -c /usr/src/googletest/googletest/src/gtest_main.cc",
+  "file": "/usr/src/googletest/googletest/src/gtest_main.cc"
+},
+{
+  "directory": "/home/asd/catkin_ws/src/quadcopter_control/build/gtest/googletest",
+  "command": "/usr/lib/ccache/c++  -DGTEST_CREATE_SHARED_LIBRARY=1 -Dgtest_EXPORTS -I/usr/src/googletest/googletest/include -I/usr/src/googletest/googletest  -g -fPIC   -Wall -Wshadow -Wno-error=dangling-else -DGTEST_HAS_PTHREAD=1 -fexceptions -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -std=c++11 -o CMakeFiles/gtest.dir/src/gtest-all.cc.o -c /usr/src/googletest/googletest/src/gtest-all.cc",
+  "file": "/usr/src/googletest/googletest/src/gtest-all.cc"
+}
+]

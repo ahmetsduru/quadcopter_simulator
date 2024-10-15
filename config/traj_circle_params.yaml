@@ -1,0 +1,5 @@
+circle_traj:
+  circle_radius: 1.0      # Çemberin yarıçapı (metre cinsinden)
+  z_height: 0.5           # Z ekseninde yükseklik (metre cinsinden)
+  duration: 5.0          # Çemberin tamamlanma süresi (saniye)
+  update_frequency: 20.0  # Frekans (Hz) ile güncelleme

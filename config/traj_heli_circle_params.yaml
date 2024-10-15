@@ -1,0 +1,10 @@
+circle_heli_traj:
+  # Parameters for the helical and circular trajectory node
+  helix_radius: 0.5    # Radius of the helix in meters
+  circle_radius: 2.0   # Radius of the circle in meters
+  helix_height: 5.0    # Height for the helical ascent in meters
+  T_helix: 20.0        # Time to complete the helical ascent in seconds
+  T_circle: 10.0       # Time to complete one circle in seconds
+  total_time: 30.0     # Total time for the trajectory including helical ascent and circular path
+  hz: 20.0             # Frequency in Hz, doubled for smoother trajectory
+

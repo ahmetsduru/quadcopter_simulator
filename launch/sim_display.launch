@@ -1,0 +1,43 @@
+<launch>
+
+    <!-- Load configuration parameters from YAML file -->
+    <rosparam file="$(find quadcopter_control)/config/quadcopter_params.yaml" command="load" />
+
+    <!-- Load configuration parameters from YAML file -->
+    <rosparam file="$(find quadcopter_control)/config/traj_1_params.yaml" command="load" />
+
+    <!-- Trajectory Node -->
+    <node name="trajectory_generator" pkg="quadcopter_control" type="trajectory_generator" output="screen">
+        <!-- Add any necessary parameters or arguments here -->
+    </node>
+
+    <!-- Mid-Level Controller Node -->
+    <node name="mid_level_cont" pkg="quadcopter_control" type="mid_level_cont" output="screen">
+        <!-- Add any necessary parameters or arguments here -->
+    </node>
+
+    <!-- Low-Level Controller Node -->
+    <node name="low_level_cont" pkg="quadcopter_control" type="low_level_cont" output="screen">
+        <!-- Add any necessary parameters or arguments here -->
+    </node>
+
+    <!-- Equations of Motion (EOM) Node -->
+    <node name="eom" pkg="quadcopter_control" type="eom" output="screen">
+        <!-- Add any necessary parameters or arguments here -->
+    </node>
+
+    <!-- Launch the path publisher node -->
+    <node name="rviz_data" pkg="quadcopter_control" type="rviz_data" output="screen" />
+
+    <!-- Equations of Motion (EOM) Node -->
+    <node name="data_logger" pkg="quadcopter_control" type="data_logger" output="screen">
+        <!-- Add any necessary parameters or arguments here -->
+    </node>
+
+    <!-- Load the URDF file into the parameter server -->
+    <arg name="model" default="$(find quadcopter_control)/urdf/quad_cad.urdf"/>
+    <param name="robot_description" command="$(find xacro)/xacro $(arg model)" />
+
+    <!-- RViz Node with quad_rviz.rviz Configuration -->
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find quadcopter_control)/rviz/quad_rviz.rviz" output="screen" />
+</launch>

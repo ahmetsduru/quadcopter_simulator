@@ -2,6 +2,7 @@
 #include <geometry_msgs/Vector3.h>
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <tf2/LinearMath/Quaternion.h>
 #include <fstream>
 #include <string>
 
@@ -69,9 +70,14 @@ void logRefPoseData(const ros::Time& timestamp)
 {
     if (log_file_ref_pose.is_open())
     {
-        log_file_ref_pose << timestamp << ", "
-                          << ref_angles_data.x << ", " << ref_angles_data.y << ", " << ref_angles_data.z << ", "
-                          << position_data.x << ", " << position_data.y << ", " << position_data.z << std::endl;
+        // Convert Euler angles (ref_angles_data) to quaternion
+        tf2::Quaternion quaternion;
+        quaternion.setRPY(ref_angles_data.x, ref_angles_data.y, ref_angles_data.z); // Roll, Pitch, Yaw to Quaternion
+
+        // Log position and quaternion data
+        log_file_ref_pose << timestamp << ", " 
+                          << position_data.x << ", " << position_data.y << ", " << position_data.z << ", "
+                          << quaternion.x() << ", " << quaternion.y() << ", " << quaternion.z() << ", " << quaternion.w() << std::endl;
     }
 }
 
@@ -88,7 +94,6 @@ void logStatesData(const ros::Time& timestamp)
     }
 }
 
-
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "data_logger");
@@ -104,7 +109,7 @@ int main(int argc, char** argv)
     }
 
     // Write header to ref_pose file
-    log_file_ref_pose << "timestamp, ref_phi, ref_theta, ref_psi, ref_x, ref_y, ref_z" << std::endl;
+    log_file_ref_pose << "timestamp, ref_x, ref_y, ref_z, ref_quat_x, ref_quat_y, ref_quat_z, ref_quat_w" << std::endl;
     
     // Write header to states file
     log_file_states << "timestamp, x, y, z, "

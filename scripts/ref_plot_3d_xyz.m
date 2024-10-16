@@ -5,10 +5,10 @@ function ref_plot_3d_xyz(log_folder)
     % Veriyi okuma (readtable kullanarak daha esnek şekilde okuma)
     data = readtable(file_path, 'Delimiter', ',');
 
-    % x (5. kolon), y (6. kolon) ve z (7. kolon) verilerini ayırma
-    x = data{:, 5};  % 5. kolon: x verisi
-    y = data{:, 6};  % 6. kolon: y verisi
-    z = data{:, 7};  % 7. kolon: z verisi
+    % x (2. kolon), y (3. kolon) ve z (4. kolon) verilerini ayırma
+    x = data{:, 2};  % 2. kolon: x verisi
+    y = data{:, 3};  % 3. kolon: y verisi
+    z = data{:, 4};  % 4. kolon: z verisi
 
     % Eğer veriler doğruysa, 3 boyutlu grafiği çizelim
     if ~isempty(x) && ~isempty(y) && ~isempty(z)

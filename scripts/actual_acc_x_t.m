@@ -3,7 +3,7 @@ function actual_acc_x_t(log_folder)
     file_path = fullfile(log_folder, 'states.txt');
 
     % Veriyi okuma (readtable kullanarak daha esnek şekilde okuma)
-    data = readtable(file_path, 'Delimiter', ',');
+    data = readtable(file_path, 'Delimiter',',');
 
     % Timestamp (1. kolon) ve a_acc_x (8. kolon) verilerini ayırma
     timestamp = data{:, 1};  % 1. kolon: timestamp

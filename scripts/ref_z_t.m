@@ -5,9 +5,9 @@ function ref_z_t(log_folder)
     % Veriyi okuma (readtable kullanarak daha esnek şekilde okuma)
     data = readtable(file_path, 'Delimiter', ',');
 
-    % Timestamp (1. kolon) ve ref_z (7. kolon) verilerini ayırma
+    % Timestamp (1. kolon) ve ref_z (4. kolon) verilerini ayırma
     timestamp = data{:, 1};  % 1. kolon: timestamp
-    ref_z = data{:, 7};      % 7. kolon: ref_z
+    ref_z = data{:, 4};      % 4. kolon: ref_z
 
     % Eğer veriler doğruysa, grafiği çizelim
     if ~isempty(timestamp) && ~isempty(ref_z)

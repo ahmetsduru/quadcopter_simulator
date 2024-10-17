@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0.2)
 project(quadcopter_control)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -31,7 +31,6 @@ catkin_package(
  INCLUDE_DIRS include
  LIBRARIES quadcopter_control
  CATKIN_DEPENDS mavros_msgs roscpp std_msgs sensor_msgs message_runtime
-#  DEPENDS system_lib
 )
 
 ###########
@@ -41,12 +40,25 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-include
+  include
   ${catkin_INCLUDE_DIRS}
   ${Eigen3_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
 )
 
+## BaseClass, MidLevelController ve LowLevelController dosyaları için
+add_library(base_class src/base_class.cpp)
+add_dependencies(base_class ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+add_executable(mid_level_cont src/mid_level_cont.cpp)
+target_link_libraries(mid_level_cont base_class ${catkin_LIBRARIES})
+add_dependencies(mid_level_cont ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+add_executable(low_level_cont src/low_level_cont.cpp)
+target_link_libraries(low_level_cont base_class ${catkin_LIBRARIES})
+add_dependencies(low_level_cont ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+## Diğer executable dosyalar için
 add_executable(real_time_control src/real_time_control.cpp)
 target_link_libraries(real_time_control ${catkin_LIBRARIES})
 add_dependencies(real_time_control quadcopter_control_generate_messages_cpp)
@@ -54,14 +66,6 @@ add_dependencies(real_time_control quadcopter_control_generate_messages_cpp)
 add_executable(trajectory_generator src/trajectory_generator.cpp)
 target_link_libraries(trajectory_generator ${catkin_LIBRARIES})
 add_dependencies(trajectory_generator quadcopter_control_generate_messages_cpp)
-
-add_executable(mid_level_cont src/mid_level_cont.cpp)
-target_link_libraries(mid_level_cont ${catkin_LIBRARIES})
-add_dependencies(mid_level_cont quadcopter_control_generate_messages_cpp)
-
-add_executable(low_level_cont src/low_level_cont.cpp)
-target_link_libraries(low_level_cont ${catkin_LIBRARIES})
-add_dependencies(low_level_cont quadcopter_control_generate_messages_cpp)
 
 add_executable(eom src/eom.cpp)
 target_link_libraries(eom ${catkin_LIBRARIES})
@@ -82,3 +86,4 @@ add_dependencies(rviz_data quadcopter_control_generate_messages_cpp)
 add_executable(data_logger src/data_logger.cpp)
 target_link_libraries(data_logger ${catkin_LIBRARIES})
 add_dependencies(data_logger quadcopter_control_generate_messages_cpp)
+

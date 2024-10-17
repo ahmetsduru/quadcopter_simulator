@@ -4,6 +4,7 @@
 #include <Eigen/Dense>
 #include <geometry_msgs/Vector3.h>
 #include <std_msgs/Float64.h>
+#include <XmlRpcValue.h>
 
 class TrajectoryGenerator {
 public:
@@ -13,22 +14,49 @@ public:
         psi_pub = nh.advertise<std_msgs::Float64>("psi", 10);
         waypoints_pub = nh.advertise<geometry_msgs::Vector3>("waypoints", 10);  // Waypoints yayınlayıcı
 
-        // Parametreleri yapılandırma dosyasından oku
-        nh.getParam("trajectory/points_x", points_x);
-        nh.getParam("trajectory/points_y", points_y);
-        nh.getParam("trajectory/points_z", points_z);
-        nh.getParam("trajectory/times", times);
-        nh.getParam("trajectory/ros_rate", ros_rate);
-        nh.getParam("trajectory/return_to_start", return_to_start);  // Başlangıç noktasına dönme parametresi
-        nh.getParam("trajectory/method", trajectory_method);  // Trajectory generation yöntemi
+        // trajectory_manager yapılandırmasını oku
+        std::string active_trajectory;
+        nh.getParam("trajectory_manager/active_trajectory", active_trajectory);
 
-        // Başlangıç noktasına dönüş süresi parametresi
-        if (return_to_start) {
-            nh.getParam("trajectory/return_duration", return_duration);
+        // available_trajectories parametresini oku
+        XmlRpc::XmlRpcValue available_trajectories;
+        if (nh.getParam("trajectory_manager/available_trajectories", available_trajectories)) {
+            ROS_ASSERT(available_trajectories.getType() == XmlRpc::XmlRpcValue::TypeArray);
+
+            for (int i = 0; i < available_trajectories.size(); ++i) {
+                ROS_ASSERT(available_trajectories[i].getType() == XmlRpc::XmlRpcValue::TypeStruct);
+                
+                std::string name = static_cast<std::string>(available_trajectories[i]["name"]);
+                std::string file = static_cast<std::string>(available_trajectories[i]["file"]);
+
+                if (name == active_trajectory) {
+                    loadTrajectory(nh, name);  // Seçilen trajectory dosyasını yükle
+                    break;
+                }
+            }
+        } else {
+            ROS_ERROR("Failed to get available_trajectories from trajectory_manager");
         }
 
         // Waypoints verilerini yayınlama
         publishWaypoints();
+    }
+
+    void loadTrajectory(ros::NodeHandle& nh, const std::string& trajectory_namespace) {
+        // Yörünge verilerini seçilen isim alanından yükle
+        std::string trajectory_ns = "/"+trajectory_namespace;  // İsim alanını başına ekleyelim
+        nh.getParam(trajectory_ns + "/points_x", points_x);
+        nh.getParam(trajectory_ns + "/points_y", points_y);
+        nh.getParam(trajectory_ns + "/points_z", points_z);
+        nh.getParam(trajectory_ns + "/times", times);
+        nh.getParam(trajectory_ns + "/ros_rate", ros_rate);
+        nh.getParam(trajectory_ns + "/return_to_start", return_to_start);  // Başlangıç noktasına dönme parametresi
+        nh.getParam(trajectory_ns + "/method", trajectory_method);  // Trajectory generation yöntemi
+
+        // Başlangıç noktasına dönüş süresi parametresi
+        if (return_to_start) {
+            nh.getParam(trajectory_ns + "/return_duration", return_duration);
+        }
     }
 
     void generateTrajectory() {
@@ -725,9 +753,9 @@ public:
     }
 
     void publishWaypoints() {
-        ros::Rate rate(ros_rate);  // ROS döngü hızını belirliyoruz
+        ros::Rate rate(ros_rate);  // Set ROS loop rate
 
-        // Yayına başlamadan önce 1 saniye bekle
+        // Wait 1 second before starting the publishing
         ros::Duration(1.0).sleep();  
 
         for (size_t i = 0; i < points_x.size(); ++i) {
@@ -736,11 +764,15 @@ public:
             waypoint.y = points_y[i];
             waypoint.z = points_z[i];
             waypoints_pub.publish(waypoint);
-            
-            ros::spinOnce();   // ROS mesaj döngüsü
-            rate.sleep();      // Yayınlar arasında bekleme
+
+            ros::spinOnce();   // ROS message loop
+            rate.sleep();      // Wait before publishing next waypoint
+
+            // Wait 2 seconds after publishing each waypoint
+            ros::Duration(0.5).sleep();  
         }
     }
+
 
 private:
     ros::Publisher position_pub;

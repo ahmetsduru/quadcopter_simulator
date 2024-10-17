@@ -3,8 +3,17 @@
     <!-- Load configuration parameters from YAML file -->
     <rosparam file="$(find quadcopter_control)/config/quadcopter_params.yaml" command="load" />
 
-    <!-- Load configuration parameters from YAML file -->
-    <rosparam file="$(find quadcopter_control)/config/traj_1_params.yaml" command="load" />
+    <!-- Parametre dosyalarını yükleme -->
+    <rosparam file="$(find quadcopter_control)/config/trajectory_manager.yaml" command="load"/>
+
+    <!-- Crescent trajectory parametrelerini yükle -->
+    <rosparam file="$(find quadcopter_control)/config/trajectory_crescent.yaml" command="load"/>
+
+    <!-- Random trajectory parametrelerini yükle -->
+    <rosparam file="$(find quadcopter_control)/config/trajectory_random.yaml" command="load"/>
+
+    <!-- Hover trajectory parametrelerini yükle -->
+    <rosparam file="$(find quadcopter_control)/config/trajectory_hover.yaml" command="load"/>
 
     <!-- Trajectory Node -->
     <node name="trajectory_generator" pkg="quadcopter_control" type="trajectory_generator" output="screen">

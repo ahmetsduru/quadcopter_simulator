@@ -1,5 +1,5 @@
 trajectory_manager:
-  active_trajectory: "trajectory_hover"  # Seçili olan yol planı ("crescent" veya "traj_1_params")
+  active_trajectory: "trajectory_random"  # Seçili olan yol planı ("crescent" veya "traj_1_params")
   available_trajectories:
     - name: "trajectory_crescent"
       file: "trajectory_crescent.yaml"

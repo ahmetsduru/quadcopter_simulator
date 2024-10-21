@@ -1,12 +1,17 @@
 trajectory_manager:
-  active_trajectory: "trajectory_random"  # Seçili olan yol planı ("crescent" veya "traj_1_params")
-  available_trajectories:
+  active_trajectory: "trajectory_random_2"  # Birden fazla aktif yörünge
+  available_trajectory:
     - name: "trajectory_crescent"
       file: "trajectory_crescent.yaml"
     - name: "trajectory_random"
       file: "trajectory_random.yaml"
+    - name: "trajectory_random_2"
+      file: "trajectory_random_2.yaml"
     - name: "trajectory_hover"
       file: "trajectory_hover.yaml"
+  return_to_start: true  # Tüm yörüngeler için başlangıç noktasına geri dönmeyi yönetmek için bu parametre
+  return_duration: 4.0  # Başlangıç noktasına dönüş süresi (isteğe bağlı)
+
 
 
 

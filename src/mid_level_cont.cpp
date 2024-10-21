@@ -30,7 +30,7 @@ public:
         ref_angles_pub = nh.advertise<geometry_msgs::Vector3>("/control/reference_angles", 10);
 
         min_thrust = 0.0;
-        max_thrust = 4.905; // Equivalent to 50% throttle
+        max_thrust = 4.905;
     }
 
     void spin() {

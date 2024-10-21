@@ -20,6 +20,11 @@ find_package(catkin REQUIRED COMPONENTS
   message_filters
 )
 
+add_service_files(
+  FILES
+  WaypointService.srv
+)
+
 generate_messages(
   DEPENDENCIES
   mavros_msgs
@@ -86,4 +91,9 @@ add_dependencies(rviz_data quadcopter_control_generate_messages_cpp)
 add_executable(data_logger src/data_logger.cpp)
 target_link_libraries(data_logger ${catkin_LIBRARIES})
 add_dependencies(data_logger quadcopter_control_generate_messages_cpp)
+
+add_executable(waypoint_server src/waypoint_server.cpp)
+target_link_libraries(waypoint_server ${catkin_LIBRARIES})
+add_dependencies(waypoint_server quadcopter_control_generate_messages_cpp)
+
 

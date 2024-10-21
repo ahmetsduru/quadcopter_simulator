@@ -4,7 +4,7 @@
 #include <Eigen/Dense>
 #include <geometry_msgs/Vector3.h>
 #include <std_msgs/Float64.h>
-#include <XmlRpcValue.h>
+#include <quadcopter_control/WaypointService.h> 
 
 class TrajectoryGenerator {
 public:
@@ -14,48 +14,45 @@ public:
         psi_pub = nh.advertise<std_msgs::Float64>("psi", 10);
         waypoints_pub = nh.advertise<geometry_msgs::Vector3>("waypoints", 10);  // Waypoints yayınlayıcı
 
-        // trajectory_manager yapılandırmasını oku
-        std::string active_trajectory;
-        nh.getParam("trajectory_manager/active_trajectory", active_trajectory);
+        // Servis istemcisi oluştur
+        trajectory_client = nh.serviceClient<quadcopter_control::WaypointService>("get_trajectory");
 
-        // available_trajectories parametresini oku
-        XmlRpc::XmlRpcValue available_trajectories;
-        if (nh.getParam("trajectory_manager/available_trajectories", available_trajectories)) {
-            ROS_ASSERT(available_trajectories.getType() == XmlRpc::XmlRpcValue::TypeArray);
-
-            for (int i = 0; i < available_trajectories.size(); ++i) {
-                ROS_ASSERT(available_trajectories[i].getType() == XmlRpc::XmlRpcValue::TypeStruct);
-                
-                std::string name = static_cast<std::string>(available_trajectories[i]["name"]);
-                std::string file = static_cast<std::string>(available_trajectories[i]["file"]);
-
-                if (name == active_trajectory) {
-                    loadTrajectory(nh, name);  // Seçilen trajectory dosyasını yükle
-                    break;
-                }
-            }
+        // Servisten verileri al ve yörüngeyi yükle
+        if (getTrajectoryFromServer()) {
+            publishWaypoints();  // Waypoints verilerini yayınla
         } else {
-            ROS_ERROR("Failed to get available_trajectories from trajectory_manager");
+            ROS_ERROR("Failed to get trajectory data from server.");
         }
-
-        // Waypoints verilerini yayınlama
-        publishWaypoints();
     }
 
-    void loadTrajectory(ros::NodeHandle& nh, const std::string& trajectory_namespace) {
-        // Yörünge verilerini seçilen isim alanından yükle
-        std::string trajectory_ns = "/"+trajectory_namespace;  // İsim alanını başına ekleyelim
-        nh.getParam(trajectory_ns + "/points_x", points_x);
-        nh.getParam(trajectory_ns + "/points_y", points_y);
-        nh.getParam(trajectory_ns + "/points_z", points_z);
-        nh.getParam(trajectory_ns + "/times", times);
-        nh.getParam(trajectory_ns + "/ros_rate", ros_rate);
-        nh.getParam(trajectory_ns + "/return_to_start", return_to_start);  // Başlangıç noktasına dönme parametresi
-        nh.getParam(trajectory_ns + "/method", trajectory_method);  // Trajectory generation yöntemi
+    bool getTrajectoryFromServer() {
+        // Servis talebi oluştur
+        quadcopter_control::WaypointService srv;
 
-        // Başlangıç noktasına dönüş süresi parametresi
-        if (return_to_start) {
-            nh.getParam(trajectory_ns + "/return_duration", return_duration);
+        // Servisi çağır ve talep yanıtını al
+        if (trajectory_client.call(srv)) {
+            points_x = srv.response.points_x;
+            points_y = srv.response.points_y;
+            points_z = srv.response.points_z;
+            times = srv.response.times;
+            ros_rate = srv.response.ros_rate;
+            return_to_start = srv.response.return_to_start;
+            return_duration = srv.response.return_duration;
+            trajectory_method = srv.response.method;
+
+            // Verileri ekrana yazdır
+            for (size_t i = 0; i < points_x.size(); ++i) {
+            }
+            ROS_INFO("ROS Rate: %.2f", ros_rate);
+            ROS_INFO("Return to start: %s", return_to_start ? "true" : "false");
+            if (return_to_start) {
+                ROS_INFO("Return duration: %.2f", return_duration);
+            }
+            ROS_INFO("Trajectory method: %s", trajectory_method.c_str());
+
+            return true;  // Servisten başarıyla veri alındı
+        } else {
+            return false;  // Servis çağrısı başarısız oldu
         }
     }
 
@@ -76,6 +73,27 @@ public:
         } else {
             ROS_WARN("Invalid trajectory method selected. Defaulting to cubic spline.");
             solveCubicSpline();
+        }
+    }
+
+    void publishWaypoints() {
+        ros::Rate rate(ros_rate);  // Set ROS loop rate
+
+        // Wait 1 second before starting the publishing
+        ros::Duration(1.0).sleep();  
+
+        for (size_t i = 0; i < points_x.size(); ++i) {
+            geometry_msgs::Vector3 waypoint;
+            waypoint.x = points_x[i];
+            waypoint.y = points_y[i];
+            waypoint.z = points_z[i];
+            waypoints_pub.publish(waypoint);
+
+            ros::spinOnce();   // ROS message loop
+            rate.sleep();      // Wait before publishing next waypoint
+
+            // Wait 2 seconds after publishing each waypoint
+            ros::Duration(0.5).sleep();  
         }
     }
 
@@ -752,32 +770,11 @@ public:
         }
     }
 
-    void publishWaypoints() {
-        ros::Rate rate(ros_rate);  // Set ROS loop rate
-
-        // Wait 1 second before starting the publishing
-        ros::Duration(1.0).sleep();  
-
-        for (size_t i = 0; i < points_x.size(); ++i) {
-            geometry_msgs::Vector3 waypoint;
-            waypoint.x = points_x[i];
-            waypoint.y = points_y[i];
-            waypoint.z = points_z[i];
-            waypoints_pub.publish(waypoint);
-
-            ros::spinOnce();   // ROS message loop
-            rate.sleep();      // Wait before publishing next waypoint
-
-            // Wait 2 seconds after publishing each waypoint
-            ros::Duration(0.5).sleep();  
-        }
-    }
-
-
 private:
     ros::Publisher position_pub;
     ros::Publisher psi_pub;
     ros::Publisher waypoints_pub;  // Waypoints yayıncı
+    ros::ServiceClient trajectory_client;  // Servis istemcisi
     std::vector<double> points_x, points_y, points_z, times;
     double ros_rate;
     bool return_to_start;

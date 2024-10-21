@@ -75,6 +75,7 @@
         "*.ipp": "cpp",
         "bitset": "cpp",
         "hash_map": "cpp",
-        "hash_set": "cpp"
+        "hash_set": "cpp",
+        "forward_list": "cpp"
     }
 }

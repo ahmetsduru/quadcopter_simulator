@@ -1,0 +1,15 @@
+# WaypointService.srv
+
+# Request kısmı - Burada istemciden herhangi bir veri alınmıyor
+---
+
+# Response kısmı - Trajektör bilgileri
+float64[] points_x         # X ekseni koordinatları
+float64[] points_y         # Y ekseni koordinatları
+float64[] points_z         # Z ekseni koordinatları
+float64[] times            # Zaman bilgileri
+float64 ros_rate           # ROS rate değeri
+bool return_to_start       # Başlangıç noktasına dönüş bayrağı
+float64 return_duration    # Geri dönüş süresi
+string method              # Yörünge oluşturma metodu
+

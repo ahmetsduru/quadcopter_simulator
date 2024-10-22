@@ -8,6 +8,7 @@ Panels:
         - /Marker1
         - /Marker2
         - /Marker3
+        - /Marker3/Status1
       Splitter Ratio: 0.49854227900505066
     Tree Height: 719
   - Class: rviz/Selection
@@ -186,7 +187,7 @@ Visualization Manager:
       Marker Topic: /rviz_impulse_force_marker
       Name: Marker
       Namespaces:
-        {}
+        impulse_force: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -194,12 +195,12 @@ Visualization Manager:
       Marker Topic: /rviz_impulse_torque_marker
       Name: Marker
       Namespaces:
-        {}
+        impulse_torque: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
       Enabled: true
-      Marker Topic: /rviz_waypoint_markers
+      Marker Topic: /rviz_reference_waypoints_marker
       Name: Marker
       Namespaces:
         {}
@@ -233,7 +234,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 16.100845336914062
+      Distance: 26.818893432617188
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -241,17 +242,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -2.5641605854034424
-        Y: 1.695447564125061
-        Z: 0.5805952548980713
+        X: -2.3310325145721436
+        Y: 4.352863788604736
+        Z: -0.49447596073150635
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.48039793968200684
+      Pitch: 0.6103978157043457
       Target Frame: <Fixed Frame>
-      Yaw: 0.9303972721099854
+      Yaw: 0.8853974938392639
     Saved: ~
 Window Geometry:
   Displays:

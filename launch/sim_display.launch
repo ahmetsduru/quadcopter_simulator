@@ -43,14 +43,14 @@
         <!-- Add any necessary parameters or arguments here -->
     </node>
 
-    <!-- Launch the path publisher node -->
-    <node name="rviz_data" pkg="quadcopter_control" type="rviz_data" output="screen" />
-
     <!-- Equations of Motion (EOM) Node -->
     <node name="data_logger" pkg="quadcopter_control" type="data_logger" output="screen">
         <!-- Add any necessary parameters or arguments here -->
     </node>
 
+    <!-- Launch the path publisher node -->
+    <node name="rviz_data" pkg="quadcopter_control" type="rviz_data" output="screen" />
+    
     <!-- Load the URDF file into the parameter server -->
     <arg name="model" default="$(find quadcopter_control)/urdf/quad_cad.urdf"/>
     <param name="robot_description" command="$(find xacro)/xacro $(arg model)" />

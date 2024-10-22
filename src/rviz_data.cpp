@@ -7,247 +7,285 @@
 #include <tf/tf.h>
 #include <geometry_msgs/Quaternion.h>
 #include <visualization_msgs/Marker.h>
+#include <quadcopter_control/WaypointService.h>  // Waypoint servisini dahil et
 #include <vector>
 
-// Global variables for path messages and publishers
-nav_msgs::Path actual_path_msg;
-nav_msgs::Path reference_path_msg;
-ros::Publisher actual_path_pub;
-ros::Publisher reference_path_pub;
-ros::Publisher actual_pose_array_pub; // Publisher for the actual pose array
-ros::Publisher reference_pose_array_pub; // Publisher for the reference pose array
-ros::Publisher impulse_force_marker_pub;  // Publisher for impulse force marker
-ros::Publisher impulse_torque_marker_pub; // Publisher for impulse torque marker
-ros::Publisher waypoint_marker_pub; // Publisher for waypoint markers
-
-geometry_msgs::Point reference_position;  // Global variable to hold the reference position
-geometry_msgs::PoseArray actual_pose_array; // Global PoseArray to hold actual poses
-geometry_msgs::PoseArray reference_pose_array; // Global PoseArray to hold reference poses
-geometry_msgs::Point actual_position;  // Global variable for actual position
-
-ros::Time last_actual_pose_publish_time;
-ros::Time last_reference_pose_publish_time;
-ros::Duration pose_publish_interval(1.0); // 0.01 second interval
-
-// Variables to hold the latest impulse force and torque
-geometry_msgs::Vector3 latest_impulse_force;
-geometry_msgs::Vector3 latest_impulse_torque;
-
-// Threshold to visualize only non-zero values
-const double visualization_threshold = 0.0001;
-
-// Vectors to store all the markers
-std::vector<visualization_msgs::Marker> impulse_force_markers;
-std::vector<visualization_msgs::Marker> impulse_torque_markers;
-
-// Global variables to store the last marker IDs (to generate unique IDs)
-int impulse_force_marker_id = 0;
-int impulse_torque_marker_id = 0;
-int waypoint_marker_id = 0; // Unique marker ID for waypoints
-
-// Callback function for the actual PoseStamped messages
-void actualPoseCallback(const geometry_msgs::PoseStamped::ConstPtr& pose_msg)
+// Class to handle all RViz related data
+class RVizDataHandler
 {
-    // Set the header frame ID and timestamp for the actual path message
-    actual_path_msg.header.frame_id = "world";  // Set to the correct frame
-    actual_path_msg.header.stamp = ros::Time::now();
-
-    // Update the current position for visualizing impulses
-    actual_position = pose_msg->pose.position;
-
-    // Add the new pose to the actual path
-    actual_path_msg.poses.push_back(*pose_msg);
-
-    // Convert PoseStamped to Pose for PoseArray
-    geometry_msgs::Pose actual_pose = pose_msg->pose;
-
-    // Add the pose to the actual PoseArray, but only if 1 second has passed since the last publish
-    ros::Time current_time = ros::Time::now();
-    if ((current_time - last_actual_pose_publish_time) >= pose_publish_interval)
+public:
+    RVizDataHandler(ros::NodeHandle& nh) : waypoints_received(false)
     {
-        actual_pose_array.poses.push_back(actual_pose);
-        last_actual_pose_publish_time = current_time;
+        // Initialize publishers
+        actual_path_pub = nh.advertise<nav_msgs::Path>("/rviz_quadcopter_path", 10);
+        reference_path_pub = nh.advertise<nav_msgs::Path>("/rviz_reference_path", 10);
+        actual_pose_array_pub = nh.advertise<geometry_msgs::PoseArray>("/rviz_actual_pose_array", 10);
+        reference_pose_array_pub = nh.advertise<geometry_msgs::PoseArray>("/rviz_reference_pose_array", 10);
+        impulse_force_marker_pub = nh.advertise<visualization_msgs::Marker>("/rviz_impulse_force_marker", 10);
+        impulse_torque_marker_pub = nh.advertise<visualization_msgs::Marker>("/rviz_impulse_torque_marker", 10);
+        reference_waypoints_marker_pub = nh.advertise<visualization_msgs::Marker>("/rviz_reference_waypoints_marker", 10);
 
-        // Publish the actual PoseArray
-        actual_pose_array_pub.publish(actual_pose_array);
+        // Initialize subscribers
+        actual_pose_sub = nh.subscribe("/rviz_quad_pose", 10, &RVizDataHandler::actualPoseCallback, this);
+        reference_angles_sub = nh.subscribe("/quadcopter/euler_angles", 10, &RVizDataHandler::referenceAnglesCallback, this);
+        reference_position_sub = nh.subscribe("/position", 10, &RVizDataHandler::referencePositionCallback, this);
+        impulse_force_sub = nh.subscribe("/quadcopter/impulse_force", 10, &RVizDataHandler::impulseForceCallback, this);
+        impulse_torque_sub = nh.subscribe("/quadcopter/impulse_torque", 10, &RVizDataHandler::impulseTorqueCallback, this);
+
+        // Set initial timestamps for pose publishing
+        last_actual_pose_publish_time = ros::Time::now();
+        last_reference_pose_publish_time = ros::Time::now();
+        
+        // Initialize PoseArray headers
+        actual_pose_array.header.frame_id = "world";
+        reference_pose_array.header.frame_id = "world";
+
+        // Set thresholds
+        visualization_threshold = 0.0001;
+        pose_publish_interval = ros::Duration(1.0);  // 1 second interval
+
+        // Servis istemcisi oluştur (ilk kodda oluşturulan WaypointServer ile iletişime geçmek için)
+        waypoint_client = nh.serviceClient<quadcopter_control::WaypointService>("get_trajectory");
+        ROS_INFO("Waiting for waypoint service to be available...");
+        waypoint_client.waitForExistence();
     }
 
-    // Publish the actual path
-    actual_path_pub.publish(actual_path_msg);
-}
-
-// Callback function for the reference Euler angles (geometry_msgs::Vector3)
-void referenceAnglesCallback(const geometry_msgs::Vector3::ConstPtr& ref_msg)
-{
-    geometry_msgs::PoseStamped ref_pose;
-    geometry_msgs::Pose pose_array_element;
-
-    // Set the header frame ID and timestamp for the reference path message
-    reference_path_msg.header.frame_id = "world";  // Set to the correct frame
-    reference_path_msg.header.stamp = ros::Time::now();
-
-    // Set reference position from the global variable for Path
-    ref_pose.header.stamp = ros::Time::now();
-    ref_pose.header.frame_id = "world";  // Set to the correct frame
-    ref_pose.pose.position = reference_position;  // Use the position obtained from /position topic
-
-    // Set Euler angles (roll, pitch, yaw) from the Vector3 message
-    double roll = ref_msg->x;    // Assuming x is roll (phi)
-    double pitch = ref_msg->y;   // Assuming y is pitch (theta)
-    double yaw = ref_msg->z;     // Assuming z is yaw (psi)
-
-    // Convert Euler angles to quaternion for orientation
-    geometry_msgs::Quaternion quat = tf::createQuaternionMsgFromRollPitchYaw(roll, pitch, yaw);
-    ref_pose.pose.orientation = quat;
-
-    // Add the reference pose to the reference path
-    reference_path_msg.poses.push_back(ref_pose);
-
-    // For PoseArray, we just use the pose (without header)
-    pose_array_element.position = reference_position;
-    pose_array_element.orientation = quat;
-
-    // Add the pose to the PoseArray, but only if 1 second has passed since the last publish
-    ros::Time current_time = ros::Time::now();
-    if ((current_time - last_reference_pose_publish_time) >= pose_publish_interval)
+    // Markerları sürekli olarak yayınlamak için bir döngü fonksiyonu
+    void spin()
     {
-        reference_pose_array.poses.push_back(pose_array_element);
-        last_reference_pose_publish_time = current_time;
+        ros::Rate rate(500);  
+        while (ros::ok())
+        {
+            if (!waypoints_received)
+            {
+                getWaypoints();  // Sadece bir kez waypoint'leri al
+            }
+            publishWaypoints();  // Alınan waypoint'leri sürekli olarak yayınla
 
-        // Publish the reference PoseArray
-        reference_pose_array_pub.publish(reference_pose_array);
+            ros::spinOnce();
+            rate.sleep();
+        }
     }
 
-    // Publish the reference path
-    reference_path_pub.publish(reference_path_msg);
-}
+private:
+    // Publishers
+    ros::Publisher actual_path_pub, reference_path_pub;
+    ros::Publisher actual_pose_array_pub, reference_pose_array_pub;
+    ros::Publisher impulse_force_marker_pub, impulse_torque_marker_pub;
+    ros::Publisher reference_waypoints_marker_pub;
 
-// Callback function for the reference position (geometry_msgs::Point)
-void referencePositionCallback(const geometry_msgs::Point::ConstPtr& pos_msg)
-{
-    // Store the latest reference position in the global variable
-    reference_position = *pos_msg;
-}
+    // Subscribers
+    ros::Subscriber actual_pose_sub, reference_angles_sub;
+    ros::Subscriber reference_position_sub, impulse_force_sub;
+    ros::Subscriber impulse_torque_sub;
 
-// Function to visualize a vector as an arrow marker in RViz
-void visualizeVectorContinuous(const geometry_msgs::Vector3& impulse, const geometry_msgs::Point& position, ros::Publisher& marker_pub, const std::string& ns, int& id, const std_msgs::ColorRGBA& color)
-{
-    visualization_msgs::Marker marker;
+    // Waypoint servisi için istemci
+    ros::ServiceClient waypoint_client;
 
-    marker.header.frame_id = "world";
-    marker.header.stamp = ros::Time::now();
-    marker.ns = ns;
-    marker.id = id++;
-    marker.type = visualization_msgs::Marker::ARROW;
-    marker.action = visualization_msgs::Marker::ADD;
+    // Global variables for paths and poses
+    nav_msgs::Path actual_path_msg, reference_path_msg;
+    geometry_msgs::PoseArray actual_pose_array, reference_pose_array;
+    geometry_msgs::Point reference_position, actual_position;
 
-    // Start point of the arrow (quad position)
-    marker.points.resize(2);
-    marker.points[0].x = position.x;
-    marker.points[0].y = position.y;
-    marker.points[0].z = position.z;
+    // Global variables for impulse force and torque
+    geometry_msgs::Vector3 latest_impulse_force, latest_impulse_torque;
 
-    // End point of the arrow (quad position + impulse)
-    marker.points[1].x = position.x + impulse.x;
-    marker.points[1].y = position.y + impulse.y;
-    marker.points[1].z = position.z + impulse.z;
+    // Marker related variables
+    std::vector<visualization_msgs::Marker> waypoint_markers;
+    bool waypoints_received;
 
-    // Arrow appearance settings
-    marker.scale.x = 0.01;  // Shaft diameter
-    marker.scale.y = 0.05;  // Head diameter
-    marker.scale.z = 0.03;  // Head length
+    // Time management for pose publishing
+    ros::Time last_actual_pose_publish_time, last_reference_pose_publish_time;
+    ros::Duration pose_publish_interval;
 
-    // Set the color of the arrow
-    marker.color = color;
+    // Threshold for visualization
+    double visualization_threshold;
 
-    // Store the marker in the corresponding vector
-    if (ns == "impulse_force")
+    // Marker IDs for impulse force and torque
+    int impulse_force_marker_id = 0;  // Marker ID for impulse force
+    int impulse_torque_marker_id = 0;  // Marker ID for impulse torque
+
+    // Waypoint verilerini alma ve yayınlama fonksiyonu (sadece bir kez veri alınacak)
+    void getWaypoints()
     {
-        impulse_force_markers.push_back(marker);
+        quadcopter_control::WaypointService srv;
+        if (waypoint_client.call(srv))
+        {           
+            if (srv.response.points_x.empty()) {
+                ROS_WARN("Received waypoint data is empty.");
+                return;
+            }
+            // Gelen waypoint verilerini marker olarak sakla
+            for (size_t i = 0; i < srv.response.points_x.size(); ++i)
+            {
+                visualization_msgs::Marker waypoint_marker;
+                waypoint_marker.header.frame_id = "world";
+                waypoint_marker.header.stamp = ros::Time::now();
+                waypoint_marker.ns = "waypoints";
+                waypoint_marker.id = i;
+                waypoint_marker.type = visualization_msgs::Marker::SPHERE;
+                waypoint_marker.action = visualization_msgs::Marker::ADD;
+
+                // Kürenin büyüklüğünü ve rengini ayarla
+                waypoint_marker.scale.x = 0.2;
+                waypoint_marker.scale.y = 0.2;
+                waypoint_marker.scale.z = 0.2;
+                waypoint_marker.color.r = 1.0f;
+                waypoint_marker.color.g = 0.5f;
+                waypoint_marker.color.b = 0.5f;
+                waypoint_marker.color.a = 1.0;
+
+                // Marker pozisyonunu ayarla
+                geometry_msgs::Point waypoint_point;
+                waypoint_point.x = srv.response.points_x[i];
+                waypoint_point.y = srv.response.points_y[i];
+                waypoint_point.z = srv.response.points_z[i];
+                waypoint_marker.pose.position = waypoint_point;
+
+                waypoint_marker.lifetime = ros::Duration();  // Sonsuz ömür
+
+                // Markerları bir vektörde sakla
+                waypoint_markers.push_back(waypoint_marker);
+            }
+
+            waypoints_received = true;  // Veriler alındı
+        }
+        else
+        {
+            ROS_ERROR("Failed to call service WaypointService");
+        }
     }
-    else if (ns == "impulse_torque")
+
+    // Alınan waypoint markerlarını sürekli olarak yayınlayan fonksiyon
+    void publishWaypoints()
     {
-        impulse_torque_markers.push_back(marker);
+        for (const auto& marker : waypoint_markers)
+        {
+            reference_waypoints_marker_pub.publish(marker);
+        }
     }
 
-    // Publish the marker to RViz
-    marker_pub.publish(marker);
-}
-
-// Callback function for the impulse force (geometry_msgs::Vector3)
-void impulseForceCallback(const geometry_msgs::Vector3::ConstPtr& force_msg)
-{
-    latest_impulse_force = *force_msg;
-
-    // Check if the force is non-zero
-    if (std::fabs(force_msg->x) > visualization_threshold ||
-        std::fabs(force_msg->y) > visualization_threshold ||
-        std::fabs(force_msg->z) > visualization_threshold)
+    // Diğer callback fonksiyonları
+    void actualPoseCallback(const geometry_msgs::PoseStamped::ConstPtr& pose_msg)
     {
-        // Define the color for the impulse force arrow (e.g., blue)
-        std_msgs::ColorRGBA color;
-        color.r = 0.0;
-        color.g = 0.0;
-        color.b = 1.0;
-        color.a = 1.0;
+        actual_path_msg.header.frame_id = "world";
+        actual_path_msg.header.stamp = ros::Time::now();
 
-        // Continuously visualize the impulse force as an arrow in RViz, using the actual quadcopter position
-        visualizeVectorContinuous(latest_impulse_force, actual_position, impulse_force_marker_pub, "impulse_force", impulse_force_marker_id, color);
+        actual_position = pose_msg->pose.position;
+        actual_path_msg.poses.push_back(*pose_msg);
+
+        geometry_msgs::Pose actual_pose = pose_msg->pose;
+
+        if (ros::Time::now() - last_actual_pose_publish_time >= pose_publish_interval)
+        {
+            actual_pose_array.poses.push_back(actual_pose);
+            last_actual_pose_publish_time = ros::Time::now();
+            actual_pose_array_pub.publish(actual_pose_array);
+        }
+
+        actual_path_pub.publish(actual_path_msg);
     }
-}
 
-// Callback function for the impulse torque (geometry_msgs::Vector3)
-void impulseTorqueCallback(const geometry_msgs::Vector3::ConstPtr& torque_msg)
-{
-    latest_impulse_torque = *torque_msg;
-
-    // Check if the torque is non-zero
-    if (std::fabs(torque_msg->x) > visualization_threshold ||
-        std::fabs(torque_msg->y) > visualization_threshold ||
-        std::fabs(torque_msg->z) > visualization_threshold)
+    void referenceAnglesCallback(const geometry_msgs::Vector3::ConstPtr& ref_msg)
     {
-        // Define the color for the impulse torque arrow
-        std_msgs::ColorRGBA color;
-        color.r = 0.8;
-        color.g = 0.3;
-        color.b = 1.0;
-        color.a = 1.0;
+        geometry_msgs::PoseStamped ref_pose;
+        geometry_msgs::Pose pose_array_element;
 
-        // Continuously visualize the impulse torque as an arrow in RViz, using the actual quadcopter position
-        visualizeVectorContinuous(latest_impulse_torque, actual_position, impulse_torque_marker_pub, "impulse_torque", impulse_torque_marker_id, color);
+        reference_path_msg.header.frame_id = "world";
+        reference_path_msg.header.stamp = ros::Time::now();
+
+        ref_pose.header.stamp = ros::Time::now();
+        ref_pose.header.frame_id = "world";
+        ref_pose.pose.position = reference_position;
+
+        double roll = ref_msg->x;
+        double pitch = ref_msg->y;
+        double yaw = ref_msg->z;
+
+        geometry_msgs::Quaternion quat = tf::createQuaternionMsgFromRollPitchYaw(roll, pitch, yaw);
+        ref_pose.pose.orientation = quat;
+
+        reference_path_msg.poses.push_back(ref_pose);
+
+        pose_array_element.position = reference_position;
+        pose_array_element.orientation = quat;
+
+        if (ros::Time::now() - last_reference_pose_publish_time >= pose_publish_interval)
+        {
+            reference_pose_array.poses.push_back(pose_array_element);
+            last_reference_pose_publish_time = ros::Time::now();
+            reference_pose_array_pub.publish(reference_pose_array);
+        }
+
+        reference_path_pub.publish(reference_path_msg);
     }
-}
 
-// Callback function for the waypoints (geometry_msgs::Vector3)
-void waypointsCallback(const geometry_msgs::Vector3::ConstPtr& waypoint_msg)
-{
-    visualization_msgs::Marker marker;
-    marker.header.frame_id = "world";  // Set the frame for RViz
-    marker.header.stamp = ros::Time::now();
-    marker.ns = "waypoints";
-    marker.id = waypoint_marker_id++;  // Unique ID for each waypoint marker
-    marker.type = visualization_msgs::Marker::SPHERE;
-    marker.action = visualization_msgs::Marker::ADD;
+    void referencePositionCallback(const geometry_msgs::Point::ConstPtr& pos_msg)
+    {
+        reference_position = *pos_msg;
+    }
 
-    // Set the position of the marker (from the waypoint data)
-    marker.pose.position.x = waypoint_msg->x;
-    marker.pose.position.y = waypoint_msg->y;
-    marker.pose.position.z = waypoint_msg->z;
+    void impulseForceCallback(const geometry_msgs::Vector3::ConstPtr& force_msg)
+    {
+        latest_impulse_force = *force_msg;
 
-    // Marker appearance
-    marker.scale.x = 0.1;  // Set the size of the sphere marker
-    marker.scale.y = 0.1;
-    marker.scale.z = 0.1;
+        if (std::fabs(force_msg->x) > visualization_threshold ||
+            std::fabs(force_msg->y) > visualization_threshold ||
+            std::fabs(force_msg->z) > visualization_threshold)
+        {
+            std_msgs::ColorRGBA color;
+            color.r = 0.0;
+            color.g = 0.0;
+            color.b = 1.0;
+            color.a = 1.0;
 
-    // Set the color (red for waypoints)
-    marker.color.r = 1.0;
-    marker.color.g = 0.5;
-    marker.color.b = 0.5;
-    marker.color.a = 1.0;
+            visualizeVector(latest_impulse_force, actual_position, impulse_force_marker_pub, "impulse_force", impulse_force_marker_id, color);
+        }
+    }
 
-    // Publish the marker to RViz
-    waypoint_marker_pub.publish(marker);
-}
+    void impulseTorqueCallback(const geometry_msgs::Vector3::ConstPtr& torque_msg)
+    {
+        latest_impulse_torque = *torque_msg;
+
+        if (std::fabs(torque_msg->x) > visualization_threshold ||
+            std::fabs(torque_msg->y) > visualization_threshold ||
+            std::fabs(torque_msg->z) > visualization_threshold)
+        {
+            std_msgs::ColorRGBA color;
+            color.r = 0.8;
+            color.g = 0.3;
+            color.b = 1.0;
+            color.a = 1.0;
+
+            visualizeVector(latest_impulse_torque, actual_position, impulse_torque_marker_pub, "impulse_torque", impulse_torque_marker_id, color);
+        }
+    }
+
+    // Function to visualize vectors
+    void visualizeVector(const geometry_msgs::Vector3& vector, const geometry_msgs::Point& position, ros::Publisher& marker_pub, const std::string& ns, int& id, const std_msgs::ColorRGBA& color)
+    {
+        visualization_msgs::Marker marker;
+        marker.header.frame_id = "world";
+        marker.header.stamp = ros::Time::now();
+        marker.ns = ns;
+        marker.id = id++;
+        marker.type = visualization_msgs::Marker::ARROW;
+        marker.action = visualization_msgs::Marker::ADD;
+
+        marker.points.resize(2);
+        marker.points[0] = position;
+        marker.points[1].x = position.x + vector.x;
+        marker.points[1].y = position.y + vector.y;
+        marker.points[1].z = position.z + vector.z;
+
+        marker.scale.x = 0.01;
+        marker.scale.y = 0.05;
+        marker.scale.z = 0.03;
+        marker.color = color;
+
+        marker_pub.publish(marker);
+    }
+};
 
 int main(int argc, char** argv)
 {
@@ -257,53 +295,11 @@ int main(int argc, char** argv)
     // Create a NodeHandle
     ros::NodeHandle nh;
 
-    // Initialize the last publish time to 0
-    last_actual_pose_publish_time = ros::Time::now();
-    last_reference_pose_publish_time = ros::Time::now();
-
-    // Create a subscriber for the actual quadcopter pose
-    ros::Subscriber actual_pose_sub = nh.subscribe("/rviz_quad_pose", 10, actualPoseCallback);
-
-    // Create a subscriber for the reference Euler angles
-    ros::Subscriber reference_angles_sub = nh.subscribe("/quadcopter/euler_angles", 10, referenceAnglesCallback);
-
-    // Create a subscriber for the reference position
-    ros::Subscriber reference_position_sub = nh.subscribe("/position", 10, referencePositionCallback);
-
-    // Create a subscriber for the impulse force
-    ros::Subscriber impulse_force_sub = nh.subscribe("/quadcopter/impulse_force", 10, impulseForceCallback);
-
-    // Create a subscriber for the impulse torque
-    ros::Subscriber impulse_torque_sub = nh.subscribe("/quadcopter/impulse_torque", 10, impulseTorqueCallback);
-
-    // Create a subscriber for waypoints
-    ros::Subscriber waypoints_sub = nh.subscribe("/waypoints", 10, waypointsCallback);
-
-    // Create a publisher for the actual path
-    actual_path_pub = nh.advertise<nav_msgs::Path>("/rviz_quadcopter_path", 10);
-
-    // Create a publisher for the reference path
-    reference_path_pub = nh.advertise<nav_msgs::Path>("/rviz_reference_path", 10);
-
-    // Create a publisher for the actual pose array (PoseArray)
-    actual_pose_array_pub = nh.advertise<geometry_msgs::PoseArray>("/rviz_actual_pose_array", 10);
-
-    // Create a publisher for the reference pose array (PoseArray)
-    reference_pose_array_pub = nh.advertise<geometry_msgs::PoseArray>("/rviz_reference_pose_array", 10);
-
-    // Create publishers for impulse force and torque markers
-    impulse_force_marker_pub = nh.advertise<visualization_msgs::Marker>("/rviz_impulse_force_marker", 10);
-    impulse_torque_marker_pub = nh.advertise<visualization_msgs::Marker>("/rviz_impulse_torque_marker", 10);
-
-    // Create a publisher for waypoint markers
-    waypoint_marker_pub = nh.advertise<visualization_msgs::Marker>("/rviz_waypoint_markers", 10);
-
-    // Initialize the PoseArray headers and frames
-    actual_pose_array.header.frame_id = "world";  // Set the correct frame
-    reference_pose_array.header.frame_id = "world";  // Set the correct frame
+    // Create an instance of the RVizDataHandler class
+    RVizDataHandler rviz_data_handler(nh);
 
     // Spin to process callbacks
-    ros::spin();
+    rviz_data_handler.spin();  // Marker'ları sürekli olarak yayınlamak için döngü
 
     return 0;
 }

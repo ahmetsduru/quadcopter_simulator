@@ -12,14 +12,13 @@ public:
         // Publisher'lar
         position_pub = nh.advertise<geometry_msgs::Vector3>("position", 10);
         psi_pub = nh.advertise<std_msgs::Float64>("psi", 10);
-        waypoints_pub = nh.advertise<geometry_msgs::Vector3>("waypoints", 10);  // Waypoints yayınlayıcı
 
         // Servis istemcisi oluştur
         trajectory_client = nh.serviceClient<quadcopter_control::WaypointService>("get_trajectory");
 
         // Servisten verileri al ve yörüngeyi yükle
         if (getTrajectoryFromServer()) {
-            publishWaypoints();  // Waypoints verilerini yayınla
+            // Waypointleri yayınlama kısmı kaldırıldı
         } else {
             ROS_ERROR("Failed to get trajectory data from server.");
         }
@@ -73,27 +72,6 @@ public:
         } else {
             ROS_WARN("Invalid trajectory method selected. Defaulting to cubic spline.");
             solveCubicSpline();
-        }
-    }
-
-    void publishWaypoints() {
-        ros::Rate rate(ros_rate);  // Set ROS loop rate
-
-        // Wait 1 second before starting the publishing
-        ros::Duration(1.0).sleep();  
-
-        for (size_t i = 0; i < points_x.size(); ++i) {
-            geometry_msgs::Vector3 waypoint;
-            waypoint.x = points_x[i];
-            waypoint.y = points_y[i];
-            waypoint.z = points_z[i];
-            waypoints_pub.publish(waypoint);
-
-            ros::spinOnce();   // ROS message loop
-            rate.sleep();      // Wait before publishing next waypoint
-
-            // Wait 2 seconds after publishing each waypoint
-            ros::Duration(0.5).sleep();  
         }
     }
 
@@ -773,7 +751,6 @@ public:
 private:
     ros::Publisher position_pub;
     ros::Publisher psi_pub;
-    ros::Publisher waypoints_pub;  // Waypoints yayıncı
     ros::ServiceClient trajectory_client;  // Servis istemcisi
     std::vector<double> points_x, points_y, points_z, times;
     double ros_rate;

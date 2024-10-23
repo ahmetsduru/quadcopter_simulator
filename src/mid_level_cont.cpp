@@ -1,9 +1,5 @@
-#include <ros/ros.h>
-#include <geometry_msgs/Vector3.h>
 #include <std_msgs/Float64.h>
-#include <Eigen/Dense>
 #include <Eigen/Geometry>
-#include <cmath>
 #include "../include/quadcopter_control/base_class.h"
 
 class MidLevelController : public BaseClass { // Inherit from BaseClass
@@ -20,17 +16,18 @@ public:
         nh.getParam("mid_level_controller/ki_theta", ki_theta);
         nh.getParam("mid_level_controller/kd_theta", kd_theta);
         nh.getParam("mid_level_controller/dt", dt);
+        nh.getParam("mid_level_controller/min_thrust", min_thrust);
+        nh.getParam("mid_level_controller/max_thrust", max_thrust);
+        nh.getParam("mid_level_controller/integral_min", integral_min);
+        nh.getParam("mid_level_controller/integral_max", integral_max);
 
         // Set up ROS subscribers and publishers
-        position_sub = nh.subscribe("/position", 10, &MidLevelController::positionCallback, this);
-        psi_sub = nh.subscribe("/psi", 10, &MidLevelController::psiCallback, this);
-        current_position_sub = nh.subscribe("/quadcopter/position", 10, &MidLevelController::currentPositionCallback, this);
-        current_euler_sub = nh.subscribe("/quadcopter/euler_angles", 10, &MidLevelController::currentEulerCallback, this);
-        thrust_pub = nh.advertise<std_msgs::Float64>("/control/thrust", 10);
-        ref_angles_pub = nh.advertise<geometry_msgs::Vector3>("/control/reference_angles", 10);
+        position_sub = nh.subscribe("/reference_position", 10, &MidLevelController::positionCallback, this);
+        current_position_sub = nh.subscribe("/actual_position", 10, &MidLevelController::currentPositionCallback, this);
+        current_euler_sub = nh.subscribe("/actual_euler_angles", 10, &MidLevelController::currentEulerCallback, this);
 
-        min_thrust = 0.0;
-        max_thrust = 4.905;
+        thrust_pub = nh.advertise<std_msgs::Float64>("/reference_thrust", 10);
+        ref_angles_pub = nh.advertise<geometry_msgs::Vector3>("/reference_euler_angles", 10);
     }
 
     void spin() {
@@ -49,7 +46,6 @@ public:
 private:
     ros::NodeHandle nh;
     ros::Subscriber position_sub;
-    ros::Subscriber psi_sub;
     ros::Subscriber current_position_sub;
     ros::Subscriber current_euler_sub;
     ros::Publisher thrust_pub;
@@ -69,14 +65,14 @@ private:
     double min_thrust, max_thrust;
 
     double computeThrust() {
-        double thrust = computePID(reference_z, current_z, prev_error_thrust, integral_thrust, kp_thrust, ki_thrust, kd_thrust, dt) + 0.382 * 9.81;
+        double thrust = computePID(reference_z, current_z, prev_error_thrust, integral_thrust, kp_thrust, ki_thrust, kd_thrust, dt, integral_min, integral_max) + 0.382 * 9.81;
         return applyThrustSaturation(thrust, min_thrust, max_thrust);
     }
 
     geometry_msgs::Vector3 computeReferenceAngles() {
         geometry_msgs::Vector3 ref_angles;
-        ref_angles.x = computePID(reference_y, current_y, prev_error_ref_phi, integral_ref_phi, kp_phi, ki_phi, kd_phi, dt);
-        ref_angles.y = computePID(reference_x, current_x, prev_error_ref_theta, integral_ref_theta, kp_theta, ki_theta, kd_theta, dt);
+        ref_angles.x = computePID(reference_y, current_y, prev_error_ref_phi, integral_ref_phi, kp_phi, ki_phi, kd_phi, dt, integral_min, integral_max);
+        ref_angles.y = computePID(reference_x, current_x, prev_error_ref_theta, integral_ref_theta, kp_theta, ki_theta, kd_theta, dt, integral_min, integral_max);
         ref_angles.z = reference_psi;
         return ref_angles;
     }
@@ -96,10 +92,6 @@ private:
         reference_x = msg->x;
         reference_y = msg->y;
         reference_z = msg->z;
-    }
-
-    void psiCallback(const std_msgs::Float64::ConstPtr& msg) {
-        reference_psi = msg->data;
     }
 
     void currentPositionCallback(const geometry_msgs::Vector3::ConstPtr& msg) {

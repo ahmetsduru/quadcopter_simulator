@@ -107,20 +107,20 @@ private:
 
     // Initialize ROS subscribers
     void initializeSubscribers(ros::NodeHandle& nh) {
-        thrust_sub = nh.subscribe("/control/thrust", 10, &Quadcopter::thrustCallback, this);
-        torques_sub = nh.subscribe("/control/torques", 10, &Quadcopter::torquesCallback, this);
+        thrust_sub = nh.subscribe("/reference_thrust", 10, &Quadcopter::thrustCallback, this);
+        torques_sub = nh.subscribe("/reference_torques", 10, &Quadcopter::torquesCallback, this);
     }
 
     // Initialize ROS publishers
     void initializePublishers(ros::NodeHandle& nh) {
-        pos_pub = nh.advertise<geometry_msgs::Vector3>("/quadcopter/position", 10);
-        euler_pub = nh.advertise<geometry_msgs::Vector3>("/quadcopter/euler_angles", 10);
+        pos_pub = nh.advertise<geometry_msgs::Vector3>("/actual_position", 10);
+        euler_pub = nh.advertise<geometry_msgs::Vector3>("/actual_euler_angles", 10);
         pose_pub = nh.advertise<geometry_msgs::PoseStamped>("/rviz_quad_pose", 10);
-        velocity_pub = nh.advertise<geometry_msgs::Vector3>("/quadcopter/velocity", 10);
-        angular_velocity_pub = nh.advertise<geometry_msgs::Vector3>("/quadcopter/angular_velocity", 10);
-        acceleration_pub = nh.advertise<geometry_msgs::Vector3>("/quadcopter/acceleration", 10);
-        impulse_force_pub = nh.advertise<geometry_msgs::Vector3>("/quadcopter/impulse_force", 10);
-        impulse_torque_pub = nh.advertise<geometry_msgs::Vector3>("/quadcopter/impulse_torque", 10);
+        velocity_pub = nh.advertise<geometry_msgs::Vector3>("/actual_velocity", 10);
+        angular_velocity_pub = nh.advertise<geometry_msgs::Vector3>("/actual_angular_velocity", 10);
+        acceleration_pub = nh.advertise<geometry_msgs::Vector3>("/actual_acceleration", 10);
+        impulse_force_pub = nh.advertise<geometry_msgs::Vector3>("/actual_impulse_force", 10);
+        impulse_torque_pub = nh.advertise<geometry_msgs::Vector3>("/actual_impulse_torque", 10);
     }
 
     // Initialize the quadcopter's state
@@ -209,9 +209,9 @@ private:
         R << x[3], x[4], x[5],
              x[6], x[7], x[8],
              x[9], x[10], x[11];
-        double phi = atan2(R(2, 1), R(2, 2));
+        double phi = std::atan2(R(2, 1), R(2, 2));
         double theta = -asin(R(2, 0));
-        double psi = atan2(R(1, 0), R(0, 0));
+        double psi = std::atan2(R(1, 0), R(0, 0));
 
         geometry_msgs::Vector3 euler_msg;
         euler_msg.x = phi;

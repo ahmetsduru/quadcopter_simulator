@@ -1,16 +1,20 @@
 trajectory_manager:
-  active_trajectories: ["trajectory_random", "trajectory_random_2"]  # Birden fazla yörünge seçilebilir
+  active_trajectories: ["trajectory_random", "trajectory_random_2", "trajectory_random_3"]  # Birden fazla yörünge seçilebilir
   available_trajectory:
+    - name: "trajectory_hover"
+      file: "trajectory_hover.yaml"  
     - name: "trajectory_crescent"
       file: "trajectory_crescent.yaml"
     - name: "trajectory_random"
       file: "trajectory_random.yaml"
     - name: "trajectory_random_2"
       file: "trajectory_random_2.yaml"
-    - name: "trajectory_hover"
-      file: "trajectory_hover.yaml"
-  return_to_start: true  
-  return_duration: 8.0
+    - name: "trajectory_random_3"
+      file: "trajectory_random_3.yaml"
+    - name: "trajectory_pid_tuning"
+      file: "trajectory_pid_tuning.yaml"
+  return_to_start: false
+  return_duration: 15.0
 
 
 

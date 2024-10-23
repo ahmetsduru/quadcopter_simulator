@@ -4,6 +4,7 @@
 #include <ros/ros.h>
 #include <geometry_msgs/Vector3.h>
 #include <cmath>
+#include <Eigen/Dense>
 
 class BaseClass {
 public:
@@ -11,8 +12,8 @@ public:
 
     // PID denetleyici hesaplaması tüm türetilmiş sınıflar için
     double computePID(double setpoint, double measured_value, double& prev_error, double& integral,
-                      double kp, double ki, double kd, double dt);
-
+                      double kp, double ki, double kd, double dt, double integral_min, double integral_max);
+    
 protected:
     // PID denetleyici durum değişkenleri
     double prev_error_thrust, integral_thrust;
@@ -30,6 +31,8 @@ protected:
     double kp_torque2, ki_torque2, kd_torque2;
     double kp_torque3, ki_torque3, kd_torque3;
     double dt;
+    double integral_min;
+    double integral_max;
 };
 
 #endif // BASE_CLASS_H

@@ -28,6 +28,13 @@ mid_level_controller:
   kp_theta: 0.4
   ki_theta: 0.0
   kd_theta: 0.15
+
+  integral_min: 0.0
+  integral_max: 4.905
+
+  min_thrust: 0.0
+  max_thrust: 4.905
+
   dt: 0.05            # Time step for 20 Hz
   
 low_level_controller:
@@ -40,9 +47,13 @@ low_level_controller:
   ki_torque2: 0.0
   kd_torque2: 0.01
 
-  kp_torque3: 0.005
+  kp_torque3: 0.02
   ki_torque3: 0.0
-  kd_torque3: 0.0035
+  kd_torque3: 0.01
+
+  integral_min: 0.0
+  integral_max: 0.3
+
   dt: 0.01            # Time step for 100 Hz
 
 state_derivative_solver_node:

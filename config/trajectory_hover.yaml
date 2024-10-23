@@ -4,4 +4,4 @@ trajectory_hover:
   points_z: [0.0, 0.6]
   times: [0.0, 6.0]
   ros_rate: 20.0
-  method: "minimum_jerk"  # "cubic_spline", "natural_cubic_spline", "minimum_jerk", "minimum_snap"
+  method: "cubic_spline"  # "cubic_spline", "natural_cubic_spline", "minimum_jerk", "minimum_snap"

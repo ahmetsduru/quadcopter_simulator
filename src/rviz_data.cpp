@@ -7,14 +7,13 @@
 #include <tf/tf.h>
 #include <geometry_msgs/Quaternion.h>
 #include <visualization_msgs/Marker.h>
-#include <quadcopter_control/WaypointService.h>  // Waypoint servisini dahil et
 #include <vector>
 
 // Class to handle all RViz related data
 class RVizDataHandler
 {
 public:
-    RVizDataHandler(ros::NodeHandle& nh) : waypoints_received(false)
+    RVizDataHandler(ros::NodeHandle& nh)
     {
         // Initialize publishers
         actual_path_pub = nh.advertise<nav_msgs::Path>("/rviz_quadcopter_path", 10);
@@ -23,14 +22,13 @@ public:
         reference_pose_array_pub = nh.advertise<geometry_msgs::PoseArray>("/rviz_reference_pose_array", 10);
         impulse_force_marker_pub = nh.advertise<visualization_msgs::Marker>("/rviz_impulse_force_marker", 10);
         impulse_torque_marker_pub = nh.advertise<visualization_msgs::Marker>("/rviz_impulse_torque_marker", 10);
-        reference_waypoints_marker_pub = nh.advertise<visualization_msgs::Marker>("/rviz_reference_waypoints_marker", 10);
 
         // Initialize subscribers
         actual_pose_sub = nh.subscribe("/rviz_quad_pose", 10, &RVizDataHandler::actualPoseCallback, this);
-        reference_angles_sub = nh.subscribe("/quadcopter/euler_angles", 10, &RVizDataHandler::referenceAnglesCallback, this);
-        reference_position_sub = nh.subscribe("/position", 10, &RVizDataHandler::referencePositionCallback, this);
-        impulse_force_sub = nh.subscribe("/quadcopter/impulse_force", 10, &RVizDataHandler::impulseForceCallback, this);
-        impulse_torque_sub = nh.subscribe("/quadcopter/impulse_torque", 10, &RVizDataHandler::impulseTorqueCallback, this);
+        reference_angles_sub = nh.subscribe("/actual_euler_angles", 10, &RVizDataHandler::referenceAnglesCallback, this);
+        reference_position_sub = nh.subscribe("/reference_position", 10, &RVizDataHandler::referencePositionCallback, this);
+        impulse_force_sub = nh.subscribe("/actual_impulse_force", 10, &RVizDataHandler::impulseForceCallback, this);
+        impulse_torque_sub = nh.subscribe("/actual_impulse_torque", 10, &RVizDataHandler::impulseTorqueCallback, this);
 
         // Set initial timestamps for pose publishing
         last_actual_pose_publish_time = ros::Time::now();
@@ -43,11 +41,6 @@ public:
         // Set thresholds
         visualization_threshold = 0.0001;
         pose_publish_interval = ros::Duration(1.0);  // 1 second interval
-
-        // Servis istemcisi oluştur (ilk kodda oluşturulan WaypointServer ile iletişime geçmek için)
-        waypoint_client = nh.serviceClient<quadcopter_control::WaypointService>("get_trajectory");
-        ROS_INFO("Waiting for waypoint service to be available...");
-        waypoint_client.waitForExistence();
     }
 
     // Markerları sürekli olarak yayınlamak için bir döngü fonksiyonu
@@ -56,12 +49,6 @@ public:
         ros::Rate rate(500);  
         while (ros::ok())
         {
-            if (!waypoints_received)
-            {
-                getWaypoints();  // Sadece bir kez waypoint'leri al
-            }
-            publishWaypoints();  // Alınan waypoint'leri sürekli olarak yayınla
-
             ros::spinOnce();
             rate.sleep();
         }
@@ -72,15 +59,11 @@ private:
     ros::Publisher actual_path_pub, reference_path_pub;
     ros::Publisher actual_pose_array_pub, reference_pose_array_pub;
     ros::Publisher impulse_force_marker_pub, impulse_torque_marker_pub;
-    ros::Publisher reference_waypoints_marker_pub;
 
     // Subscribers
     ros::Subscriber actual_pose_sub, reference_angles_sub;
     ros::Subscriber reference_position_sub, impulse_force_sub;
     ros::Subscriber impulse_torque_sub;
-
-    // Waypoint servisi için istemci
-    ros::ServiceClient waypoint_client;
 
     // Global variables for paths and poses
     nav_msgs::Path actual_path_msg, reference_path_msg;
@@ -89,10 +72,6 @@ private:
 
     // Global variables for impulse force and torque
     geometry_msgs::Vector3 latest_impulse_force, latest_impulse_torque;
-
-    // Marker related variables
-    std::vector<visualization_msgs::Marker> waypoint_markers;
-    bool waypoints_received;
 
     // Time management for pose publishing
     ros::Time last_actual_pose_publish_time, last_reference_pose_publish_time;
@@ -104,66 +83,6 @@ private:
     // Marker IDs for impulse force and torque
     int impulse_force_marker_id = 0;  // Marker ID for impulse force
     int impulse_torque_marker_id = 0;  // Marker ID for impulse torque
-
-    // Waypoint verilerini alma ve yayınlama fonksiyonu (sadece bir kez veri alınacak)
-    void getWaypoints()
-    {
-        quadcopter_control::WaypointService srv;
-        if (waypoint_client.call(srv))
-        {           
-            if (srv.response.points_x.empty()) {
-                ROS_WARN("Received waypoint data is empty.");
-                return;
-            }
-            // Gelen waypoint verilerini marker olarak sakla
-            for (size_t i = 0; i < srv.response.points_x.size(); ++i)
-            {
-                visualization_msgs::Marker waypoint_marker;
-                waypoint_marker.header.frame_id = "world";
-                waypoint_marker.header.stamp = ros::Time::now();
-                waypoint_marker.ns = "waypoints";
-                waypoint_marker.id = i;
-                waypoint_marker.type = visualization_msgs::Marker::SPHERE;
-                waypoint_marker.action = visualization_msgs::Marker::ADD;
-
-                // Kürenin büyüklüğünü ve rengini ayarla
-                waypoint_marker.scale.x = 0.2;
-                waypoint_marker.scale.y = 0.2;
-                waypoint_marker.scale.z = 0.2;
-                waypoint_marker.color.r = 1.0f;
-                waypoint_marker.color.g = 0.5f;
-                waypoint_marker.color.b = 0.5f;
-                waypoint_marker.color.a = 1.0;
-
-                // Marker pozisyonunu ayarla
-                geometry_msgs::Point waypoint_point;
-                waypoint_point.x = srv.response.points_x[i];
-                waypoint_point.y = srv.response.points_y[i];
-                waypoint_point.z = srv.response.points_z[i];
-                waypoint_marker.pose.position = waypoint_point;
-
-                waypoint_marker.lifetime = ros::Duration();  // Sonsuz ömür
-
-                // Markerları bir vektörde sakla
-                waypoint_markers.push_back(waypoint_marker);
-            }
-
-            waypoints_received = true;  // Veriler alındı
-        }
-        else
-        {
-            ROS_ERROR("Failed to call service WaypointService");
-        }
-    }
-
-    // Alınan waypoint markerlarını sürekli olarak yayınlayan fonksiyon
-    void publishWaypoints()
-    {
-        for (const auto& marker : waypoint_markers)
-        {
-            reference_waypoints_marker_pub.publish(marker);
-        }
-    }
 
     // Diğer callback fonksiyonları
     void actualPoseCallback(const geometry_msgs::PoseStamped::ConstPtr& pose_msg)

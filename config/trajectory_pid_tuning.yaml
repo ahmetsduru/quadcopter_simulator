@@ -1,0 +1,7 @@
+trajectory_pid_tuning:
+  points_x: [0.0, 0.0, 1.0, 1.0]
+  points_y: [0.0, 0.0, 0.0, -1.0]
+  points_z: [0.0, 2.0, 2.0, 2.0]
+  times: [0.0, 8.0, 15.0, 20.0]
+  ros_rate: 20.0
+  method: "minimum_snap"  # "cubic_spline", "natural_cubic_spline", "minimum_jerk", "minimum_snap"

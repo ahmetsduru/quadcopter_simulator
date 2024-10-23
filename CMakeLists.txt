@@ -76,14 +76,6 @@ add_executable(eom src/eom.cpp)
 target_link_libraries(eom ${catkin_LIBRARIES})
 add_dependencies(eom quadcopter_control_generate_messages_cpp)
 
-add_executable(circle_traj src/circle_traj.cpp)
-target_link_libraries(circle_traj ${catkin_LIBRARIES})
-add_dependencies(circle_traj quadcopter_control_generate_messages_cpp)
-
-add_executable(circle_heli_traj src/circle_heli_traj.cpp)
-target_link_libraries(circle_heli_traj ${catkin_LIBRARIES})
-add_dependencies(circle_heli_traj quadcopter_control_generate_messages_cpp)
-
 add_executable(rviz_data src/rviz_data.cpp)
 target_link_libraries(rviz_data ${catkin_LIBRARIES})
 add_dependencies(rviz_data quadcopter_control_generate_messages_cpp)

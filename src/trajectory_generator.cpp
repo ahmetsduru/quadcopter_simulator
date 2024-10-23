@@ -8,27 +8,24 @@
 
 class TrajectoryGenerator {
 public:
-    TrajectoryGenerator(ros::NodeHandle& nh) {
+    TrajectoryGenerator(ros::NodeHandle& nh) : no_more_trajectory(false) {
         // Publisher'lar
-        position_pub = nh.advertise<geometry_msgs::Vector3>("position", 10);
-        psi_pub = nh.advertise<std_msgs::Float64>("psi", 10);
+        position_pub = nh.advertise<geometry_msgs::Vector3>("/reference_position", 10);
 
         // Servis istemcisi oluştur
         trajectory_client = nh.serviceClient<quadcopter_control::WaypointService>("get_trajectory");
 
-        // Servisten verileri al ve yörüngeyi yükle
+        // İlk yörüngeyi servisten al
         if (getTrajectoryFromServer()) {
-            // Waypointleri yayınlama kısmı kaldırıldı
+            ROS_INFO("Trajectory data received from server.");
         } else {
             ROS_ERROR("Failed to get trajectory data from server.");
         }
     }
 
     bool getTrajectoryFromServer() {
-        // Servis talebi oluştur
         quadcopter_control::WaypointService srv;
 
-        // Servisi çağır ve talep yanıtını al
         if (trajectory_client.call(srv)) {
             points_x = srv.response.points_x;
             points_y = srv.response.points_y;
@@ -39,39 +36,42 @@ public:
             return_duration = srv.response.return_duration;
             trajectory_method = srv.response.method;
 
-            // Verileri ekrana yazdır
-            for (size_t i = 0; i < points_x.size(); ++i) {
+            // Boş veri kontrolü
+            if (points_x.empty() || points_y.empty() || points_z.empty() || times.empty()) {
+                ROS_WARN("Empty trajectory data received. No further requests will be made.");
+                no_more_trajectory = true;
+                return false;
             }
-            ROS_INFO("ROS Rate: %.2f", ros_rate);
-            ROS_INFO("Return to start: %s", return_to_start ? "true" : "false");
-            if (return_to_start) {
-                ROS_INFO("Return duration: %.2f", return_duration);
-            }
-            ROS_INFO("Trajectory method: %s", trajectory_method.c_str());
 
-            return true;  // Servisten başarıyla veri alındı
+            return true;
         } else {
-            return false;  // Servis çağrısı başarısız oldu
+            return false;
         }
     }
 
     void generateTrajectory() {
-        // Trajectory yöntemi config dosyasından alınıyor
-        if (trajectory_method == "cubic_spline") {
-            ROS_INFO("Cubic spline trajectory selected.");
-            solveCubicSpline();
-        } else if (trajectory_method == "natural_cubic_spline") {
-            ROS_INFO("Natural cubic spline trajectory selected.");
-            solveNaturalCubicSpline();
-        } else if (trajectory_method == "minimum_jerk") {
-            ROS_INFO("Minimum jerk trajectory selected.");
-            solveMinimumJerk();
-        } else if (trajectory_method == "minimum_snap") {
-            ROS_INFO("Minimum snap trajectory selected.");
-            solveMinimumSnap();
-        } else {
-            ROS_WARN("Invalid trajectory method selected. Defaulting to cubic spline.");
-            solveCubicSpline();
+        ros::Rate loop_rate(ros_rate);
+        while (ros::ok() && !no_more_trajectory) {
+            if (trajectory_method == "cubic_spline") {
+                solveCubicSpline();
+            } else if (trajectory_method == "natural_cubic_spline") {
+                solveNaturalCubicSpline();
+            } else if (trajectory_method == "minimum_jerk") {
+                solveMinimumJerk();
+            } else if (trajectory_method == "minimum_snap") {
+                solveMinimumSnap();
+            }
+
+            // Yörüngenin sonuna gelindiğinde ve yörünge boş değilse yeni bir yörünge seti al
+            if (!no_more_trajectory && getTrajectoryFromServer()) {
+                ROS_INFO("New trajectory data received from server.");
+            } else if (no_more_trajectory) {
+                ROS_INFO("No more trajectory data available. Stopping.");
+                break;  // Boş veri geldiğinde döngüyü sonlandır
+            } else {
+                ROS_ERROR("Failed to get new trajectory data from server.");
+                break;  // Yeni yörünge alınamazsa döngüyü sonlandır
+            }
         }
     }
 
@@ -181,11 +181,9 @@ public:
             position.x = pos_x;
             position.y = pos_y;
             position.z = pos_z;
-            psi.data = 0.0;    // Psi'yi sabit tutuyoruz
 
             // Mesajları yayınla
             position_pub.publish(position);
-            psi_pub.publish(psi);
 
             ros::spinOnce();
             loop_rate.sleep();
@@ -294,11 +292,9 @@ public:
             position.x = pos_x;
             position.y = pos_y;
             position.z = pos_z;
-            psi.data = 0.0;    // Psi'yi sabit tutuyoruz
 
             // Mesajları yayınla
             position_pub.publish(position);
-            psi_pub.publish(psi);
 
             ros::spinOnce();
             loop_rate.sleep();
@@ -486,11 +482,9 @@ public:
             position.x = pos_x;
             position.y = pos_y;
             position.z = pos_z;
-            psi.data = 0.0;    // Psi'yi sabit tutuyoruz
 
             // Mesajları yayınla
             position_pub.publish(position);
-            psi_pub.publish(psi);
 
             ros::spinOnce();
             loop_rate.sleep();
@@ -737,11 +731,9 @@ public:
             position.x = pos_x;
             position.y = pos_y;
             position.z = pos_z;
-            psi.data = 0.0;    // Psi'yi sabit tutuyoruz
 
             // Mesajları yayınla
             position_pub.publish(position);
-            psi_pub.publish(psi);
 
             ros::spinOnce();
             loop_rate.sleep();
@@ -750,13 +742,13 @@ public:
 
 private:
     ros::Publisher position_pub;
-    ros::Publisher psi_pub;
-    ros::ServiceClient trajectory_client;  // Servis istemcisi
+    ros::ServiceClient trajectory_client;
     std::vector<double> points_x, points_y, points_z, times;
     double ros_rate;
     bool return_to_start;
-    double return_duration;  // Dönüş süresi yapılandırma dosyasından okunur
+    double return_duration;
     std::string trajectory_method;
+    bool no_more_trajectory;  // Yeni yörünge almayı durdurma bayrağı
 };
 
 int main(int argc, char** argv) {

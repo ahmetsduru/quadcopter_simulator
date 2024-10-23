@@ -15,8 +15,14 @@
     <!-- Random trajectory parametrelerini yükle -->
     <rosparam file="$(find quadcopter_control)/config/trajectory_random_2.yaml" command="load"/>
 
+    <!-- Random trajectory parametrelerini yükle -->
+    <rosparam file="$(find quadcopter_control)/config/trajectory_random_3.yaml" command="load"/>
+
     <!-- Hover trajectory parametrelerini yükle -->
     <rosparam file="$(find quadcopter_control)/config/trajectory_hover.yaml" command="load"/>
+
+    <!-- Hover trajectory parametrelerini yükle -->
+    <rosparam file="$(find quadcopter_control)/config/trajectory_pid_tuning.yaml" command="load"/>
 
     <!-- Server Node -->
     <node name="waypoint_server" pkg="quadcopter_control" type="waypoint_server" output="screen">

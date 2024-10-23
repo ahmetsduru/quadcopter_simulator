@@ -17,10 +17,23 @@ BaseClass::BaseClass() {
 }
 
 double BaseClass::computePID(double setpoint, double measured_value, double& prev_error, double& integral,
-                             double kp, double ki, double kd, double dt) {
+                             double kp, double ki, double kd, double dt, double integral_min, double integral_max) {
     double error = setpoint - measured_value;
+    
+    // Compute the integral with windup protection (bounded integral)
     integral += error * dt;
+    if (integral > integral_max) {
+        integral = integral_max;
+    } else if (integral < integral_min) {
+        integral = integral_min;
+    }
+    
+    // Compute derivative term
     double derivative = (error - prev_error) / dt;
+    
+    // Update previous error
     prev_error = error;
+    
+    // Return the PID output
     return kp * error + ki * integral + kd * derivative;
 }

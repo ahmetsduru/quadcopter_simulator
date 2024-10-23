@@ -1,7 +1,3 @@
-#include <ros/ros.h>
-#include <geometry_msgs/Vector3.h>
-#include <Eigen/Dense>
-#include <cmath>
 #include "../include/quadcopter_control/base_class.h"
 
 class LowLevelController : public BaseClass { // Inherit from BaseClass
@@ -18,10 +14,12 @@ public:
         nh.getParam("low_level_controller/ki_torque3", ki_torque3);
         nh.getParam("low_level_controller/kd_torque3", kd_torque3);
         nh.getParam("low_level_controller/dt", dt);
+        nh.getParam("low_level_controller/integral_min", integral_min);
+        nh.getParam("low_level_controller/integral_max", integral_max);
 
-        reference_angles_sub = nh.subscribe("/control/reference_angles", 10, &LowLevelController::referenceAnglesCallback, this);
-        current_euler_sub = nh.subscribe("/quadcopter/euler_angles", 10, &LowLevelController::currentEulerCallback, this);
-        torque_pub = nh.advertise<geometry_msgs::Vector3>("/control/torques", 10);
+        reference_angles_sub = nh.subscribe("/reference_euler_angles", 10, &LowLevelController::referenceAnglesCallback, this);
+        current_euler_sub = nh.subscribe("/actual_euler_angles", 10, &LowLevelController::currentEulerCallback, this);
+        torque_pub = nh.advertise<geometry_msgs::Vector3>("/reference_torques", 10);
     }
 
     void spin() {
@@ -29,9 +27,9 @@ public:
         while (ros::ok()) {
             ros::spinOnce();
 
-            double torque1 = computePID(reference_phi, current_phi, prev_error_torque1, integral_torque1, kp_torque1, ki_torque1, kd_torque1, dt);
-            double torque2 = computePID(reference_theta, current_theta, prev_error_torque2, integral_torque2, kp_torque2, ki_torque2, kd_torque2, dt);
-            double torque3 = computePID(reference_psi, current_psi, prev_error_torque3, integral_torque3, kp_torque3, ki_torque3, kd_torque3, dt);
+            double torque1 = computePID(reference_phi, current_phi, prev_error_torque1, integral_torque1, kp_torque1, ki_torque1, kd_torque1, dt, integral_min, integral_max);
+            double torque2 = computePID(reference_theta, current_theta, prev_error_torque2, integral_torque2, kp_torque2, ki_torque2, kd_torque2, dt, integral_min, integral_max);
+            double torque3 = computePID(reference_psi, current_psi, prev_error_torque3, integral_torque3, kp_torque3, ki_torque3, kd_torque3, dt, integral_min, integral_max);
 
             publishTorques(torque1, torque2, torque3);
 

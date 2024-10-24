@@ -30,12 +30,12 @@
     </node>
 
     <!-- Trajectory Node -->
-    <node name="trajectory_generator" pkg="quadcopter_control" type="trajectory_generator" output="screen">
+    <node name="trajectory_generator_node" pkg="quadcopter_control" type="trajectory_generator_node" output="screen">
         <!-- Add any necessary parameters or arguments here -->
     </node>
 
     <!-- Mid-Level Controller Node -->
-    <node name="mid_level_cont" pkg="quadcopter_control" type="mid_level_cont" output="screen">
+    <node name="mid_level_cont_node" pkg="quadcopter_control" type="mid_level_cont_node" output="screen">
         <!-- Add any necessary parameters or arguments here -->
     </node>
 

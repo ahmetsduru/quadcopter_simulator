@@ -84,6 +84,6 @@ target_link_libraries(data_logger_node ${catkin_LIBRARIES})
 add_dependencies(data_logger_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Add waypoint_server executable
-add_executable(waypoint_server src/waypoint_server.cpp)
-target_link_libraries(waypoint_server ${catkin_LIBRARIES})
-add_dependencies(waypoint_server quadcopter_control_generate_messages_cpp)
+add_executable(waypoint_server_node src/waypoint_server_node.cpp src/waypoint_server.cpp)
+target_link_libraries(waypoint_server_node ${catkin_LIBRARIES})
+add_dependencies(waypoint_server_node quadcopter_control_generate_messages_cpp)

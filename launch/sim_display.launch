@@ -25,7 +25,7 @@
     <rosparam file="$(find quadcopter_control)/config/trajectory_pid_tuning.yaml" command="load"/>
 
     <!-- Server Node -->
-    <node name="waypoint_server" pkg="quadcopter_control" type="waypoint_server" output="screen">
+    <node name="waypoint_server_node" pkg="quadcopter_control" type="waypoint_server_node" output="screen">
         <!-- Add any necessary parameters or arguments here -->
     </node>
 

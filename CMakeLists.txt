@@ -1,12 +1,10 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(quadcopter_control)
 
-## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++11)
+## Compile as C++17, supported in ROS Kinetic and newer
+add_compile_options(-std=c++17)
 
 ## Find catkin macros and libraries
-## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
-## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   mavros_msgs
   roscpp
@@ -51,7 +49,7 @@ include_directories(
   ${Boost_INCLUDE_DIRS}
 )
 
-## BaseClass, MidLevelController ve LowLevelController dosyaları için
+## BaseClass, MidLevelController, and LowLevelController files
 add_library(base_class src/base_class.cpp)
 add_dependencies(base_class ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
@@ -63,7 +61,7 @@ add_executable(low_level_cont src/low_level_cont.cpp)
 target_link_libraries(low_level_cont base_class ${catkin_LIBRARIES})
 add_dependencies(low_level_cont ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
-## Diğer executable dosyalar için
+## Other executable files
 add_executable(real_time_control src/real_time_control.cpp)
 target_link_libraries(real_time_control ${catkin_LIBRARIES})
 add_dependencies(real_time_control quadcopter_control_generate_messages_cpp)
@@ -80,12 +78,12 @@ add_executable(rviz_data src/rviz_data.cpp)
 target_link_libraries(rviz_data ${catkin_LIBRARIES})
 add_dependencies(rviz_data quadcopter_control_generate_messages_cpp)
 
-add_executable(data_logger src/data_logger.cpp)
-target_link_libraries(data_logger ${catkin_LIBRARIES})
-add_dependencies(data_logger quadcopter_control_generate_messages_cpp)
+## Add data_logger executable (updated part)
+add_executable(data_logger_node src/data_logger_node.cpp src/data_logger.cpp)
+target_link_libraries(data_logger_node ${catkin_LIBRARIES})
+add_dependencies(data_logger_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
+## Add waypoint_server executable
 add_executable(waypoint_server src/waypoint_server.cpp)
 target_link_libraries(waypoint_server ${catkin_LIBRARIES})
 add_dependencies(waypoint_server quadcopter_control_generate_messages_cpp)
-
-

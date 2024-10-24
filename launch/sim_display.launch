@@ -49,8 +49,8 @@
         <!-- Add any necessary parameters or arguments here -->
     </node>
 
-    <!-- Equations of Motion (EOM) Node -->
-    <node name="data_logger" pkg="quadcopter_control" type="data_logger" output="screen">
+    <!-- Data Logger Node -->
+    <node name="data_logger_node" pkg="quadcopter_control" type="data_logger_node" output="screen">
         <!-- Add any necessary parameters or arguments here -->
     </node>
 

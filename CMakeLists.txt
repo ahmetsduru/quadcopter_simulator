@@ -69,9 +69,9 @@ add_executable(eom src/eom.cpp)
 target_link_libraries(eom ${catkin_LIBRARIES})
 add_dependencies(eom quadcopter_control_generate_messages_cpp)
 
-add_executable(rviz_data src/rviz_data.cpp)
-target_link_libraries(rviz_data ${catkin_LIBRARIES})
-add_dependencies(rviz_data quadcopter_control_generate_messages_cpp)
+add_executable(rviz_data_handler_node src/rviz_data_handler_node.cpp src/rviz_data_handler.cpp)
+target_link_libraries(rviz_data_handler_node ${catkin_LIBRARIES})
+add_dependencies(rviz_data_handler_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 add_executable(data_logger_node src/data_logger_node.cpp src/data_logger.cpp)
 target_link_libraries(data_logger_node ${catkin_LIBRARIES})

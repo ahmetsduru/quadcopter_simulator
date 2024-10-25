@@ -49,15 +49,12 @@ include_directories(
   ${Boost_INCLUDE_DIRS}
 )
 
-add_library(base_class src/base_class.cpp)
-add_dependencies(base_class ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
-add_executable(mid_level_cont_node src/mid_level_cont_node.cpp src/mid_level_cont.cpp)
-target_link_libraries(mid_level_cont_node base_class ${catkin_LIBRARIES})
-add_dependencies(mid_level_cont_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_executable(mid_level_cont src/mid_level_cont.cpp)
+target_link_libraries(mid_level_cont ${catkin_LIBRARIES})
+add_dependencies(mid_level_cont ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 add_executable(low_level_cont src/low_level_cont.cpp)
-target_link_libraries(low_level_cont base_class ${catkin_LIBRARIES})
+target_link_libraries(low_level_cont ${catkin_LIBRARIES})
 add_dependencies(low_level_cont ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 add_executable(real_time_control src/real_time_control.cpp)

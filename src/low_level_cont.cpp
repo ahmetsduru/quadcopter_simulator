@@ -1,6 +1,9 @@
-#include "../include/quadcopter_control/base_class.h"
+#include <ros/ros.h>
+#include <geometry_msgs/Vector3.h>
+#include <cmath>
+#include <Eigen/Dense>
 
-class LowLevelController : public BaseClass { // Inherit from BaseClass
+class LowLevelController {
 public:
     LowLevelController() {
         // Load PID gains and time step from the ROS parameter server
@@ -43,6 +46,12 @@ private:
     ros::Subscriber current_euler_sub;
     ros::Publisher torque_pub;
 
+    double kp_torque1, ki_torque1, kd_torque1;
+    double kp_torque2, ki_torque2, kd_torque2;
+    double kp_torque3, ki_torque3, kd_torque3;
+    double dt;
+    double integral_min, integral_max;
+
     double reference_phi = 0.0;
     double reference_theta = 0.0;
     double reference_psi = 0.0;
@@ -50,6 +59,14 @@ private:
     double current_phi = 0.0;
     double current_theta = 0.0;
     double current_psi = 0.0;
+
+    double prev_error_torque1 = 0.0;
+    double prev_error_torque2 = 0.0;
+    double prev_error_torque3 = 0.0;
+
+    double integral_torque1 = 0.0;
+    double integral_torque2 = 0.0;
+    double integral_torque3 = 0.0;
 
     void referenceAnglesCallback(const geometry_msgs::Vector3::ConstPtr& msg) {
         reference_phi = msg->x;
@@ -69,6 +86,28 @@ private:
         torque_msg.y = torque2;
         torque_msg.z = torque3;
         torque_pub.publish(torque_msg);
+    }
+
+    double computePID(double setpoint, double measured_value, double& prev_error, double& integral,
+                                double kp, double ki, double kd, double dt, double integral_min, double integral_max) {
+        double error = setpoint - measured_value;
+        
+        // Compute the integral with windup protection (bounded integral)
+        integral += error * dt;
+        if (integral > integral_max) {
+            integral = integral_max;
+        } else if (integral < integral_min) {
+            integral = integral_min;
+        }
+        
+        // Compute derivative term
+        double derivative = (error - prev_error) / dt;
+        
+        // Update previous error
+        prev_error = error;
+        
+        // Return the PID output
+        return kp * error + ki * integral + kd * derivative;
     }
 };
 

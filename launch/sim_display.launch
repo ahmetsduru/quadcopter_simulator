@@ -35,12 +35,12 @@
     </node>
 
     <!-- Mid-Level Controller Node -->
-    <node name="mid_level_cont" pkg="quadcopter_control" type="mid_level_cont" output="screen">
+    <node name="mid_level_cont_node" pkg="quadcopter_control" type="mid_level_cont_node" output="screen">
         <!-- Add any necessary parameters or arguments here -->
     </node>
 
     <!-- Low-Level Controller Node -->
-    <node name="low_level_cont" pkg="quadcopter_control" type="low_level_cont" output="screen">
+    <node name="low_level_cont_node" pkg="quadcopter_control" type="low_level_cont_node" output="screen">
         <!-- Add any necessary parameters or arguments here -->
     </node>
 

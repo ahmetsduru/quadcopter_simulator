@@ -36,8 +36,11 @@ private:
     double return_duration;
     std::string trajectory_method;
     bool no_more_trajectory;
-    Eigen::Vector3d initial_velocity;
-    bool is_first_run;
+    geometry_msgs::Vector3 position;
+    geometry_msgs::Vector3 velocity;
+    geometry_msgs::Vector3 acceleration;
+    geometry_msgs::Vector3 jerk;
+    bool initial_trajectory;
 
 };
 

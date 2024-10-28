@@ -258,7 +258,11 @@ private:
         ang_vel_msg.z = x[17];
         angular_velocity_pub.publish(ang_vel_msg);
 
-        Eigen::Vector3d acc = Eigen::Vector3d(x[12], x[13], x[14]) / dt;
+        Eigen::Vector3d thrust_vector(0, 0, thrust_actual);
+        Eigen::Vector3d drag_forces = computeDragForces(Eigen::Vector3d(x[12], x[13], x[14]), rho, Cd_trans, A_trans);
+        Eigen::Vector3d impulse_force = applyImpulseForce(t);
+        Eigen::Vector3d acc = (R * thrust_vector + drag_forces + impulse_force + m * g) / m;
+
         geometry_msgs::Vector3 acc_msg;
         acc_msg.x = acc.x();
         acc_msg.y = acc.y();
@@ -319,7 +323,7 @@ private:
         dxdt[2] = V[2];
 
         Eigen::Matrix3d skew_w = skewSymmetric(w);
-        Eigen::Matrix3d dR = skew_w * R;
+        Eigen::Matrix3d dR = R * skew_w;
         dxdt[3] = dR(0, 0); dxdt[4] = dR(0, 1); dxdt[5] = dR(0, 2);
         dxdt[6] = dR(1, 0); dxdt[7] = dR(1, 1); dxdt[8] = dR(1, 2);
         dxdt[9] = dR(2, 0); dxdt[10] = dR(2, 1); dxdt[11] = dR(2, 2);

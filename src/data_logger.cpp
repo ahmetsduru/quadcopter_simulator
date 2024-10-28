@@ -7,8 +7,10 @@ DataLogger::DataLogger()
     position_sub_ = nh_.subscribe("/reference_position", 10, &DataLogger::positionCallback, this);
     rviz_quad_pose_sub_ = nh_.subscribe("/rviz_quad_pose", 10, &DataLogger::rvizQuadPoseCallback, this);
     velocity_sub_ = nh_.subscribe("/actual_velocity", 10, &DataLogger::velocityCallback, this);
+    ref_velocity_sub_ = nh_.subscribe("/reference_velocity", 10, &DataLogger::RefVelocityCallback, this);
     angular_velocity_sub_ = nh_.subscribe("/actual_angular_velocity", 10, &DataLogger::angularVelocityCallback, this);
     acceleration_sub_ = nh_.subscribe("/actual_acceleration", 10, &DataLogger::accelerationCallback, this);
+    ref_acceleration_sub_ = nh_.subscribe("/reference_acceleration", 10, &DataLogger::RefAccelerationCallback, this);
 
     // Open log files
     log_file_ref_pose_.open("/home/asd/catkin_ws/src/quadcopter_control/log/ref_pose.txt", std::ios::out);
@@ -21,7 +23,9 @@ DataLogger::DataLogger()
     }
 
     // Write headers
-    log_file_ref_pose_ << "timestamp, ref_x, ref_y, ref_z, ref_quat_x, ref_quat_y, ref_quat_z, ref_quat_w" << std::endl;
+    log_file_ref_pose_ << "timestamp, ref_x, ref_y, ref_z, ref_vel_x, ref_vel_y, ref_vel_z, "
+                       << "ref_acc_x, ref_acc_y, ref_acc_z, "
+                       << "ref_quat_x, ref_quat_y, ref_quat_z, ref_quat_w" << std::endl;
     log_file_states_ << "timestamp, x, y, z, "
                      << "vel_x, vel_y, vel_z, "
                      << "acc_x, acc_y, acc_z, "
@@ -92,6 +96,12 @@ void DataLogger::velocityCallback(const geometry_msgs::Vector3::ConstPtr& msg)
     velocity_received_ = true;
 }
 
+void DataLogger::RefVelocityCallback(const geometry_msgs::Vector3::ConstPtr& msg)
+{
+    ref_velocity_data_ = *msg;
+    ref_velocity_received_ = true;
+}
+
 void DataLogger::angularVelocityCallback(const geometry_msgs::Vector3::ConstPtr& msg)
 {
     angular_velocity_data_ = *msg;
@@ -102,6 +112,12 @@ void DataLogger::accelerationCallback(const geometry_msgs::Vector3::ConstPtr& ms
 {
     acceleration_data_ = *msg;
     acceleration_received_ = true;
+}
+
+void DataLogger::RefAccelerationCallback(const geometry_msgs::Vector3::ConstPtr& msg)
+{
+    ref_acceleration_data_ = *msg;
+    ref_acceleration_received_ = true;
 }
 
 void DataLogger::logRefPoseData(const ros::Time& timestamp)
@@ -115,6 +131,8 @@ void DataLogger::logRefPoseData(const ros::Time& timestamp)
         // Log position and quaternion data
         log_file_ref_pose_ << timestamp << ", " 
                           << position_data_.x << ", " << position_data_.y << ", " << position_data_.z << ", "
+                          << ref_velocity_data_.x << ", " << ref_velocity_data_.y << ", " << ref_velocity_data_.z << ", "
+                          << ref_acceleration_data_.x << ", " << ref_acceleration_data_.y << ", " << ref_acceleration_data_.z << ", "
                           << quaternion.x() << ", " << quaternion.y() << ", " << quaternion.z() << ", " << quaternion.w() << std::endl;
     }
 }

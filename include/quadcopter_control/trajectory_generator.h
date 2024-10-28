@@ -27,6 +27,8 @@ public:
 
 private:
     ros::Publisher position_pub;
+    ros::Publisher velocity_pub;
+    ros::Publisher acceleration_pub;
     ros::ServiceClient trajectory_client;
     std::vector<double> points_x, points_y, points_z, times;
     double ros_rate;
@@ -34,6 +36,9 @@ private:
     double return_duration;
     std::string trajectory_method;
     bool no_more_trajectory;
+    Eigen::Vector3d initial_velocity;
+    bool is_first_run;
+
 };
 
 #endif // TRAJECTORY_GENERATOR_H

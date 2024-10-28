@@ -1,7 +1,9 @@
 #include "../include/quadcopter_control/trajectory_generator.h"
 
 TrajectoryGenerator::TrajectoryGenerator(ros::NodeHandle& nh) : no_more_trajectory(false) {
-    position_pub = nh.advertise<geometry_msgs::Vector3>("/reference_position", 10);
+    position_pub = nh.advertise<geometry_msgs::Vector3>("reference_position", 10);
+    velocity_pub = nh.advertise<geometry_msgs::Vector3>("reference_velocity", 10);
+    acceleration_pub = nh.advertise<geometry_msgs::Vector3>("reference_acceleration", 10);
     trajectory_client = nh.serviceClient<quadcopter_control::WaypointService>("get_trajectory");
 
     if (getTrajectoryFromServer()) {
@@ -68,15 +70,6 @@ void TrajectoryGenerator::solveNaturalCubicSpline() {
     std::vector<double> points_z_mod = points_z;
     std::vector<double> times_mod = times;
 
-    if (return_to_start) {
-        points_x_mod.push_back(points_x[0]);
-        points_y_mod.push_back(points_y[0]);
-        points_z_mod.push_back(points_z[0]);
-
-        // Yapılandırma dosyasından alınan dönüş süresini ekleyelim
-        times_mod.push_back(times.back() + return_duration);
-    }
-
     int n = points_x_mod.size() - 1; // Segment sayısı, nokta sayısından bir eksik
     int matrix_size = 4 * n;     // 4n boyutunda matris (a_i, b_i, c_i, d_i)
     // A matrisi (4n x 4n) ve b vektörü (4n) her eksen için
@@ -141,7 +134,9 @@ void TrajectoryGenerator::solveNaturalCubicSpline() {
     ros::Rate loop_rate(ros_rate); // Config dosyasından alınan ROS rate
     for (double t = times_mod[0]; t <= times_mod[n]; t += 0.05) {  // Zaman adımlarıyla ilerle
         geometry_msgs::Vector3 position;
-        std_msgs::Float64 psi;
+        geometry_msgs::Vector3 velocity;
+        geometry_msgs::Vector3 acceleration;
+
         // Hangi segmentte olduğumuzu bulalım
         int i = 0;
         while (i < n && t > times_mod[i + 1]) {
@@ -152,13 +147,33 @@ void TrajectoryGenerator::solveNaturalCubicSpline() {
         double pos_y = coeffs_y(4 * i + 0) * std::pow(dt, 3) + coeffs_y(4 * i + 1) * std::pow(dt, 2) + coeffs_y(4 * i + 2) * dt + coeffs_y(4 * i + 3);
         double pos_z = coeffs_z(4 * i + 0) * std::pow(dt, 3) + coeffs_z(4 * i + 1) * std::pow(dt, 2) + coeffs_z(4 * i + 2) * dt + coeffs_z(4 * i + 3);
         
+        double vel_x = 3 * coeffs_x(4 * i + 0) * std::pow(dt, 2) + 2 * coeffs_x(4 * i + 1) * dt + coeffs_x(4 * i + 2);
+        double vel_y = 3 * coeffs_y(4 * i + 0) * std::pow(dt, 2) + 2 * coeffs_y(4 * i + 1) * dt + coeffs_y(4 * i + 2);
+        double vel_z = 3 * coeffs_z(4 * i + 0) * std::pow(dt, 2) + 2 * coeffs_z(4 * i + 1) * dt + coeffs_z(4 * i + 2);
+
+        double acc_x = 6 * coeffs_x(4 * i + 0) * dt + 2 * coeffs_x(4 * i + 1);
+        double acc_y = 6 * coeffs_y(4 * i + 0) * dt + 2 * coeffs_y(4 * i + 1);
+        double acc_z = 6 * coeffs_z(4 * i + 0) * dt + 2 * coeffs_z(4 * i + 1);
+
         // Konumu doldur
         position.x = pos_x;
         position.y = pos_y;
         position.z = pos_z;
-        
+
+        // Velocity Pub
+        velocity.x = vel_x;
+        velocity.y = vel_y;
+        velocity.z = vel_z;
+
+        // Acceleration Pub
+        acceleration.x = acc_x;
+        acceleration.y = acc_y;
+        acceleration.z = acc_z;
+
         // Mesajları yayınla
         position_pub.publish(position);
+        velocity_pub.publish(velocity);
+        acceleration_pub.publish(acceleration);
         ros::spinOnce();
         loop_rate.sleep();
     }
@@ -238,7 +253,9 @@ void TrajectoryGenerator::solveCubicSpline() {
     ros::Rate loop_rate(ros_rate); // Config dosyasından alınan ROS rate
     for (double t = times_mod[0]; t <= times_mod[n]; t += 0.05) {  // Zaman adımlarıyla ilerle
         geometry_msgs::Vector3 position;
-        std_msgs::Float64 psi;
+        geometry_msgs::Vector3 velocity;
+        geometry_msgs::Vector3 acceleration;
+
         // Hangi segmentte olduğumuzu bulalım
         int i = 0;
         while (i < n && t > times_mod[i + 1]) {
@@ -249,13 +266,33 @@ void TrajectoryGenerator::solveCubicSpline() {
         double pos_y = coeffs_y(4 * i + 0) * std::pow(dt, 3) + coeffs_y(4 * i + 1) * std::pow(dt, 2) + coeffs_y(4 * i + 2) * dt + coeffs_y(4 * i + 3);
         double pos_z = coeffs_z(4 * i + 0) * std::pow(dt, 3) + coeffs_z(4 * i + 1) * std::pow(dt, 2) + coeffs_z(4 * i + 2) * dt + coeffs_z(4 * i + 3);
         
+        double vel_x = 3 * coeffs_x(4 * i + 0) * std::pow(dt, 2) + 2 * coeffs_x(4 * i + 1) * dt + coeffs_x(4 * i + 2);
+        double vel_y = 3 * coeffs_y(4 * i + 0) * std::pow(dt, 2) + 2 * coeffs_y(4 * i + 1) * dt + coeffs_y(4 * i + 2);
+        double vel_z = 3 * coeffs_z(4 * i + 0) * std::pow(dt, 2) + 2 * coeffs_z(4 * i + 1) * dt + coeffs_z(4 * i + 2);
+
+        double acc_x = 6 * coeffs_x(4 * i + 0) * dt + 2 * coeffs_x(4 * i + 1);
+        double acc_y = 6 * coeffs_y(4 * i + 0) * dt + 2 * coeffs_y(4 * i + 1);
+        double acc_z = 6 * coeffs_z(4 * i + 0) * dt + 2 * coeffs_z(4 * i + 1);
+
         // Konumu doldur
         position.x = pos_x;
         position.y = pos_y;
         position.z = pos_z;
 
+        // Velocity Pub
+        velocity.x = vel_x;
+        velocity.y = vel_y;
+        velocity.z = vel_z;
+
+        // Acceleration Pub
+        acceleration.x = acc_x;
+        acceleration.y = acc_y;
+        acceleration.z = acc_z;
+
         // Mesajları yayınla
         position_pub.publish(position);
+        velocity_pub.publish(velocity);
+        acceleration_pub.publish(acceleration);
         ros::spinOnce();
         loop_rate.sleep();
     }
@@ -400,7 +437,9 @@ void TrajectoryGenerator::solveMinimumJerk() {
     ros::Rate loop_rate(ros_rate); // Config dosyasından alınan ROS rate
     for (double t = times_mod[0]; t <= times_mod[n]; t += 0.05) {  // Zaman adımlarıyla ilerle
         geometry_msgs::Vector3 position;
-        std_msgs::Float64 psi;
+        geometry_msgs::Vector3 velocity;
+        geometry_msgs::Vector3 acceleration;
+
         // Hangi segmentte olduğumuzu bulalım
         int i = 0;
         while (i < n && t > times_mod[i + 1]) {
@@ -414,13 +453,36 @@ void TrajectoryGenerator::solveMinimumJerk() {
         double pos_z = coeffs_z(6 * i + 0) + coeffs_z(6 * i + 1) * dt + coeffs_z(6 * i + 2) * std::pow(dt, 2) +
                     coeffs_z(6 * i + 3) * std::pow(dt, 3) + coeffs_z(6 * i + 4) * std::pow(dt, 4) + coeffs_z(6 * i + 5) * std::pow(dt, 5);
         
+        double vel_x = coeffs_x(6 * i + 1) + 2 * coeffs_x(6 * i + 2) * std::pow(dt, 1) +
+                    3 * coeffs_x(6 * i + 3) * std::pow(dt, 2) + 4 * coeffs_x(6 * i + 4) * std::pow(dt, 3) + 5 * coeffs_x(6 * i + 5) * std::pow(dt, 4);
+        double vel_y = coeffs_y(6 * i + 1) + 2 * coeffs_y(6 * i + 2) * std::pow(dt, 1) +
+                    3 * coeffs_y(6 * i + 3) * std::pow(dt, 2) + 4 * coeffs_y(6 * i + 4) * std::pow(dt, 3) + 5 * coeffs_y(6 * i + 5) * std::pow(dt, 4);
+        double vel_z = coeffs_z(6 * i + 1) + 2 * coeffs_z(6 * i + 2) * std::pow(dt, 1) +
+                    3 * coeffs_z(6 * i + 3) * std::pow(dt, 2) + 4 * coeffs_z(6 * i + 4) * std::pow(dt, 3) + 5 * coeffs_z(6 * i + 5) * std::pow(dt, 4);
+        
+        double acc_x = 2 * coeffs_x(6 * i + 2) + 6 * coeffs_x(6 * i + 3) * dt + 12 * coeffs_x(6 * i + 4) * std::pow(dt, 2) + 20 * coeffs_x(6 * i + 5) * std::pow(dt, 3);
+        double acc_y = 2 * coeffs_y(6 * i + 2) + 6 * coeffs_y(6 * i + 3) * dt + 12 * coeffs_y(6 * i + 4) * std::pow(dt, 2) + 20 * coeffs_y(6 * i + 5) * std::pow(dt, 3);
+        double acc_z = 2 * coeffs_z(6 * i + 2) + 6 * coeffs_z(6 * i + 3) * dt + 12 * coeffs_z(6 * i + 4) * std::pow(dt, 2) + 20 * coeffs_z(6 * i + 5) * std::pow(dt, 3);
+
         // Konumu doldur
         position.x = pos_x;
         position.y = pos_y;
         position.z = pos_z;
         
+        // Velocity Pub
+        velocity.x = vel_x;
+        velocity.y = vel_y;
+        velocity.z = vel_z;
+
+        // Acceleration Pub
+        acceleration.x = acc_x;
+        acceleration.y = acc_y;
+        acceleration.z = acc_z;
+
         // Mesajları yayınla
         position_pub.publish(position);
+        velocity_pub.publish(velocity);
+        acceleration_pub.publish(acceleration);
         ros::spinOnce();
         loop_rate.sleep();
     }
@@ -601,7 +663,8 @@ void TrajectoryGenerator::solveMinimumSnap() {
     ros::Rate loop_rate(ros_rate); // Config dosyasından alınan ROS rate
     for (double t = times_mod[0]; t <= times_mod[n]; t += 0.05) {  // Zaman adımlarıyla ilerle
         geometry_msgs::Vector3 position;
-        std_msgs::Float64 psi;
+        geometry_msgs::Vector3 velocity;
+        geometry_msgs::Vector3 acceleration;
         
         // Hangi segmentte olduğumuzu bulalım
         int i = 0;
@@ -616,13 +679,36 @@ void TrajectoryGenerator::solveMinimumSnap() {
         double pos_z = coeffs_z(8 * i + 0) + coeffs_z(8 * i + 1) * dt + coeffs_z(8 * i + 2) * std::pow(dt, 2) +
                     coeffs_z(8 * i + 3) * std::pow(dt, 3) + coeffs_z(8 * i + 4) * std::pow(dt, 4) + coeffs_z(8 * i + 5) * std::pow(dt, 5) + coeffs_z(8 * i + 6) * std::pow(dt, 6) + coeffs_z(8 * i + 7) * std::pow(dt, 7);
         
+        double vel_x = coeffs_x(8 * i + 1) + 2 * coeffs_x(8 * i + 2) * dt +
+                    3 * coeffs_x(8 * i + 3) * std::pow(dt, 2) + 4 * coeffs_x(8 * i + 4) * std::pow(dt, 3) + 5 * coeffs_x(8 * i + 5) * std::pow(dt, 4) + 6 * coeffs_x(8 * i + 6) * std::pow(dt, 5) + 7 * coeffs_x(8 * i + 7) * std::pow(dt, 6);
+        double vel_y = coeffs_y(8 * i + 1) + 2 * coeffs_y(8 * i + 2) * dt +
+                    3 * coeffs_y(8 * i + 3) * std::pow(dt, 2) + 4 * coeffs_y(8 * i + 4) * std::pow(dt, 3) + 5 * coeffs_y(8 * i + 5) * std::pow(dt, 4) + 6 * coeffs_y(8 * i + 6) * std::pow(dt, 5) + 7 * coeffs_y(8 * i + 7) * std::pow(dt, 6);
+        double vel_z = coeffs_z(8 * i + 1) + 2 * coeffs_z(8 * i + 2) * dt +
+                    3 * coeffs_z(8 * i + 3) * std::pow(dt, 2) + 4 * coeffs_z(8 * i + 4) * std::pow(dt, 3) + 5 * coeffs_z(8 * i + 5) * std::pow(dt, 4) + 6 * coeffs_z(8 * i + 6) * std::pow(dt, 5) + 7 * coeffs_z(8 * i + 7) * std::pow(dt, 6);        
+
+        double acc_x = 2 * coeffs_x(8 * i + 2) + 6 * coeffs_x(8 * i + 3) * dt + 12 * coeffs_x(8 * i + 4) * std::pow(dt, 2) + 20 * coeffs_x(8 * i + 5) * std::pow(dt, 3) + 30 * coeffs_x(8 * i + 6) * std::pow(dt, 4) + 42 * coeffs_x(8 * i + 7) * std::pow(dt, 5);
+        double acc_y = 2 * coeffs_y(8 * i + 2) + 6 * coeffs_y(8 * i + 3) * dt + 12 * coeffs_y(8 * i + 4) * std::pow(dt, 2) + 20 * coeffs_y(8 * i + 5) * std::pow(dt, 3) + 30 * coeffs_y(8 * i + 6) * std::pow(dt, 4) + 42 * coeffs_y(8 * i + 7) * std::pow(dt, 5);
+        double acc_z = 2 * coeffs_z(8 * i + 2) + 6 * coeffs_z(8 * i + 3) * dt + 12 * coeffs_z(8 * i + 4) * std::pow(dt, 2) + 20 * coeffs_z(8 * i + 5) * std::pow(dt, 3) + 30 * coeffs_z(8 * i + 6) * std::pow(dt, 4) + 42 * coeffs_z(8 * i + 7) * std::pow(dt, 5);
+        
         // Konumu doldur
         position.x = pos_x;
         position.y = pos_y;
         position.z = pos_z;
         
+        // Velocity Pub
+        velocity.x = vel_x;
+        velocity.y = vel_y;
+        velocity.z = vel_z;
+
+        // Velocity Pub
+        acceleration.x = acc_x;
+        acceleration.y = acc_y;
+        acceleration.z = acc_z;
+
         // Mesajları yayınla
         position_pub.publish(position);
+        velocity_pub.publish(velocity);
+        acceleration_pub.publish(acceleration);
         ros::spinOnce();
         loop_rate.sleep();
     }

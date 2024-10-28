@@ -13,8 +13,7 @@ trajectory_manager:
       file: "trajectory_random_3.yaml"
     - name: "trajectory_pid_tuning"
       file: "trajectory_pid_tuning.yaml"
-  return_to_start: false
-  return_duration: 15.0
+
 
 
 

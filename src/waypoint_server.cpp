@@ -17,10 +17,6 @@ WaypointServer::WaypointServer(ros::NodeHandle& nh) : current_trajectory_index(0
     } else {
         ROS_ERROR("Failed to get active_trajectories from trajectory_manager");
     }
-
-    // Load return_to_start and return_duration parameters
-    nh.param("trajectory_manager/return_to_start", return_to_start, false);
-    nh.param("trajectory_manager/return_duration", return_duration, 0.0);
 }
 
 // Callback function for the service
@@ -37,25 +33,16 @@ bool WaypointServer::getTrajectoryCallback(quadcopter_control::WaypointService::
 
     const auto& traj = trajectories[current_trajectory_index];
 
-    // Send the next trajectory data in the response
+    // Send the next trajectory data in the response without applying any offset
     res.method = traj.method;
     res.ros_rate = traj.ros_rate;
-    res.return_to_start = return_to_start;
-    res.return_duration = return_duration;
     res.points_x = traj.points_x;
     res.points_y = traj.points_y;
     res.points_z = traj.points_z;
+    res.times = traj.times;  // Directly assign without offset
 
-    // Update times by adding last_time_offset
-    res.times.clear();
-    for (const auto& time : traj.times) {
-        res.times.push_back(time + last_time_offset);
-    }
-
-    last_time_offset = res.times.back();
     current_trajectory_index++;
 
-    ROS_INFO("Sent trajectory data for trajectory: %d", current_trajectory_index);
     return true;
 }
 
@@ -73,4 +60,3 @@ void WaypointServer::loadTrajectory(ros::NodeHandle& nh, const std::string& traj
 
     ROS_INFO("Loaded trajectory: %s", trajectory_namespace.c_str());
 }
-

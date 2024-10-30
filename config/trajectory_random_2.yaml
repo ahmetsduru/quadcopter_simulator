@@ -2,6 +2,6 @@ trajectory_random_2:
   points_x: [8.0, 13.0, 16.0, 21.0, 25.0, 19.0]
   points_y: [6.0, 11.0, 14.0, 10.0, 13.0, 18.0]
   points_z: [5.0, 8.0, 6.0, 3.0, 3.0, 3.0]
-  times: [0.0, 9.0, 15.0, 20.0, 25.0, 30.0]
+  times: [0.0, 4.0, 9.0, 15.0, 21.0, 26.0]
   ros_rate: 20.0
-  method: "cubic_spline"  # "cubic_spline", "natural_cubic_spline", "minimum_jerk", "minimum_snap"
+  method: "minimum_jerk"  # "cubic_spline", "natural_cubic_spline", "minimum_jerk", "minimum_snap"

@@ -34,8 +34,6 @@ private:
     std::vector<TrajectoryData> trajectories;  // List of loaded trajectories
     size_t current_trajectory_index;  // Index to track the current trajectory
     double last_time_offset;  // Time offset from the last trajectory
-    bool return_to_start;  // Indicates if the trajectory should return to start
-    double return_duration;  // Duration for returning to start
 };
 
 #endif // WAYPOINT_SERVER_H

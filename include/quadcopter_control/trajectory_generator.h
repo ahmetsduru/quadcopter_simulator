@@ -26,21 +26,19 @@ public:
     void solveMinimumSnap();
 
 private:
-    ros::Publisher position_pub;
-    ros::Publisher velocity_pub;
-    ros::Publisher acceleration_pub;
-    ros::ServiceClient trajectory_client;
-    std::vector<double> points_x, points_y, points_z, times;
-    double ros_rate;
-    bool return_to_start;
-    double return_duration;
-    std::string trajectory_method;
-    bool no_more_trajectory;
-    geometry_msgs::Vector3 position;
-    geometry_msgs::Vector3 velocity;
-    geometry_msgs::Vector3 acceleration;
-    geometry_msgs::Vector3 jerk;
-    bool initial_trajectory;
+    ros::Publisher m_position_pub;
+    ros::Publisher m_velocity_pub;
+    ros::Publisher m_acceleration_pub;
+    ros::ServiceClient m_trajectory_client;
+    std::vector<double> m_points_x, m_points_y, m_points_z, m_times;
+    double m_ros_rate;
+    std::string m_trajectory_method;
+    bool m_no_more_trajectory;
+    geometry_msgs::Vector3 m_position;
+    geometry_msgs::Vector3 m_velocity;
+    geometry_msgs::Vector3 m_acceleration;
+    geometry_msgs::Vector3 m_jerk;
+    bool m_initial_trajectory;
 
 };
 

@@ -56,6 +56,7 @@ void TrajectoryGenerator::generateTrajectory() {
 
         if (!m_no_more_trajectory && getTrajectoryFromServer()) {
             ROS_INFO("New trajectory data received from server.");
+            continue;
         } else if (m_no_more_trajectory) {
             ROS_INFO("No more trajectory data available. Stopping.");
             break;
@@ -247,7 +248,7 @@ void TrajectoryGenerator::solveCubicSpline() {
         points_x_mod.insert(points_x_mod.begin(), m_position.x);
         points_y_mod.insert(points_y_mod.begin(), m_position.y);
         points_z_mod.insert(points_z_mod.begin(), m_position.z);
-        double last_time = times_mod.back() + 4;
+        double last_time = times_mod.back() + 7;
         times_mod.push_back(last_time);      
     }
 
@@ -265,9 +266,6 @@ void TrajectoryGenerator::solveCubicSpline() {
 
         // S_i(t_i) = P_i (her eksen için)
         A(2 * i, 4 * i + 0) = 1;
-        A(2 * i, 4 * i + 1) = 0;
-        A(2 * i, 4 * i + 2) = 0;
-        A(2 * i, 4 * i + 3) = 0;
         b_x(2 * i) = points_x_mod[i];
         b_y(2 * i) = points_y_mod[i];
         b_z(2 * i) = points_z_mod[i];
@@ -289,9 +287,6 @@ void TrajectoryGenerator::solveCubicSpline() {
         A(2 * n + (i - 1), 4 * (i - 1) + 2) = 2 * dt_prev;
         A(2 * n + (i - 1), 4 * (i - 1) + 3) = 3 * std::pow(dt_prev, 2);
         A(2 * n + (i - 1), 4 * i + 1) = -1;
-        b_x(2 * n + (i - 1)) = 0;
-        b_y(2 * n + (i - 1)) = 0;
-        b_z(2 * n + (i - 1)) = 0;
     }
     // 3. İvme sürekliliği (Acceleration Continuity)
     for (int i = 1; i < n; ++i) {
@@ -299,9 +294,6 @@ void TrajectoryGenerator::solveCubicSpline() {
         A(3 * n + (i - 2), 4 * (i - 1) + 2) = 2;
         A(3 * n - 1 + (i - 1), 4 * (i - 1) + 3) = 6 * dt_prev;
         A(3 * n - 1 + (i - 1), 4 * i + 2) = -2;
-        b_x(3 * n + (i - 2)) = 0;
-        b_y(3 * n + (i - 2)) = 0;
-        b_z(3 * n + (i - 2)) = 0;
     }
     
     // 4. initial velocity and final velocity conditions
@@ -312,7 +304,6 @@ void TrajectoryGenerator::solveCubicSpline() {
         b_x(4 * n - 2) = 0;
         b_y(4 * n - 2) = 0;
         b_z(4 * n - 2) = 0;
-
         m_initial_trajectory = false;
     } else
     {
@@ -325,9 +316,6 @@ void TrajectoryGenerator::solveCubicSpline() {
     A(4 * n - 1, 4 * (n - 1) + 1) = 1;
     A(4 * n - 1, 4 * (n - 1) + 2) = 2 * dt_last;
     A(4 * n - 1, 4 * (n - 1) + 3) = 3 * std::pow(dt_last, 2);
-    b_x(4 * n - 1) = 0;
-    b_y(4 * n - 1) = 0;
-    b_z(4 * n - 1) = 0;
 
     // Denklemi çöz (Ax = b) her eksen için
     Eigen::VectorXd coeffs_x = A.colPivHouseholderQr().solve(b_x);
@@ -344,10 +332,12 @@ void TrajectoryGenerator::solveCubicSpline() {
             i++;
         }
         double dt = t - times_mod[i];
+        ROS_INFO("t: %f", dt);
         double pos_x = coeffs_x(4 * i + 0) + coeffs_x(4 * i + 1) * dt + coeffs_x(4 * i + 2) * std::pow(dt, 2) + coeffs_x(4 * i + 3) * std::pow(dt, 3);
         double pos_y = coeffs_y(4 * i + 0) + coeffs_y(4 * i + 1) * dt + coeffs_y(4 * i + 2) * std::pow(dt, 2) + coeffs_y(4 * i + 3) * std::pow(dt, 3);
         double pos_z = coeffs_z(4 * i + 0) + coeffs_z(4 * i + 1) * dt + coeffs_z(4 * i + 2) * std::pow(dt, 2) + coeffs_z(4 * i + 3) * std::pow(dt, 3);
-        
+        ROS_INFO("x: %f   y: %f   z: %f", pos_x, pos_y, pos_z);
+
         double vel_x = coeffs_x(4 * i + 1) + 2 * coeffs_x(4 * i + 2) * dt + 3 * coeffs_x(4 * i + 3) * std::pow(dt, 2);
         double vel_y = coeffs_y(4 * i + 1) + 2 * coeffs_y(4 * i + 2) * dt + 3 * coeffs_y(4 * i + 3) * std::pow(dt, 2);
         double vel_z = coeffs_z(4 * i + 1) + 2 * coeffs_z(4 * i + 2) * dt + 3 * coeffs_z(4 * i + 3) * std::pow(dt, 2);
@@ -380,16 +370,17 @@ void TrajectoryGenerator::solveCubicSpline() {
         m_jerk.y = jerk_y;
         m_jerk.z = jerk_z;
         
+        // Mesajları yayınla
+        m_position_pub.publish(m_position);
+        m_velocity_pub.publish(m_velocity);
+        m_acceleration_pub.publish(m_acceleration);
+        
         if (i == 3 && getTrajectoryFromServer()) {
             ROS_INFO("New waypoint set received. The trajectory will be generated again.");
             generateTrajectory();
             return;
         }
 
-        // Mesajları yayınla
-        m_position_pub.publish(m_position);
-        m_velocity_pub.publish(m_velocity);
-        m_acceleration_pub.publish(m_acceleration);
         ros::spinOnce();
         loop_rate.sleep();
     }
@@ -408,7 +399,7 @@ void TrajectoryGenerator::solveMinimumJerk() {
         points_x_mod.insert(points_x_mod.begin(), m_position.x);
         points_y_mod.insert(points_y_mod.begin(), m_position.y);
         points_z_mod.insert(points_z_mod.begin(), m_position.z);
-        double last_time = times_mod.back() + 4;
+        double last_time = times_mod.back() + 7;
         times_mod.push_back(last_time);      
     }
     
@@ -564,6 +555,7 @@ void TrajectoryGenerator::solveMinimumJerk() {
         }
 
         double dt = t - times_mod[i];
+        //ROS_INFO("t: %f", t);
         double pos_x = coeffs_x(6 * i + 0) + coeffs_x(6 * i + 1) * dt + coeffs_x(6 * i + 2) * std::pow(dt, 2) +
                     coeffs_x(6 * i + 3) * std::pow(dt, 3) + coeffs_x(6 * i + 4) * std::pow(dt, 4) + coeffs_x(6 * i + 5) * std::pow(dt, 5);
         double pos_y = coeffs_y(6 * i + 0) + coeffs_y(6 * i + 1) * dt + coeffs_y(6 * i + 2) * std::pow(dt, 2) +
@@ -606,6 +598,11 @@ void TrajectoryGenerator::solveMinimumJerk() {
         m_jerk.y = jerk_y;
         m_jerk.z = jerk_z;
 
+        // Mesajları yayınla
+        m_position_pub.publish(m_position);
+        m_velocity_pub.publish(m_velocity);
+        m_acceleration_pub.publish(m_acceleration);
+
         // 3. segmente ulaşıldığında yeni waypoint seti iste
         if (i == 3 && getTrajectoryFromServer()) {
             ROS_INFO("New waypoint set received. The trajectory will be generated again.");
@@ -613,10 +610,6 @@ void TrajectoryGenerator::solveMinimumJerk() {
             return;
         }
 
-        // Mesajları yayınla
-        m_position_pub.publish(m_position);
-        m_velocity_pub.publish(m_velocity);
-        m_acceleration_pub.publish(m_acceleration);
         ros::spinOnce();
         loop_rate.sleep();
     }
@@ -635,8 +628,29 @@ void TrajectoryGenerator::solveMinimumSnap() {
         points_x_mod.insert(points_x_mod.begin(), m_position.x);
         points_y_mod.insert(points_y_mod.begin(), m_position.y);
         points_z_mod.insert(points_z_mod.begin(), m_position.z);
-        double last_time = times_mod.back() + 4;
+        double last_time = times_mod.back() + 7;
         times_mod.push_back(last_time);      
+
+        // Print points_x_mod
+        std::cout << "points_x_mod: ";
+        for (const auto& x : points_x_mod) {
+            std::cout << x << " ";
+        }
+        std::cout << std::endl;
+
+        // Print points_y_mod
+        std::cout << "points_y_mod: ";
+        for (const auto& y : points_y_mod) {
+            std::cout << y << " ";
+        }
+        std::cout << std::endl;
+
+        // Print points_z_mod
+        std::cout << "points_z_mod: ";
+        for (const auto& z : points_z_mod) {
+            std::cout << z << " ";
+        }
+        std::cout << std::endl;
     }
 
     int n = points_x_mod.size() - 1; // Segment sayısı
@@ -770,16 +784,16 @@ void TrajectoryGenerator::solveMinimumSnap() {
     
     if (m_initial_trajectory)
     {
-        b_x(4 * n + 2) = 0;  // X ekseni için başlangıç ivmesi
-        b_y(4 * n + 2) = 0;  // Y ekseni için başlangıç ivmesi
-        b_z(4 * n + 2) = 0;  // Z ekseni için başlangıç ivmesi
+        b_x(4 * n + 2) = 0;  // X ekseni için başlangıç jerk
+        b_y(4 * n + 2) = 0;  // Y ekseni için başlangıç jerk
+        b_z(4 * n + 2) = 0;  // Z ekseni için başlangıç jerk
         m_initial_trajectory = false;
     }
     else
     {
-        b_x(4 * n + 2) = m_jerk.x;  // X ekseni için başlangıç ivmesi
-        b_y(4 * n + 2) = m_jerk.y;  // Y ekseni için başlangıç ivmesi
-        b_z(4 * n + 2) = m_jerk.z;  // Z ekseni için başlangıç ivmesi
+        b_x(4 * n + 2) = m_jerk.x;  // X ekseni için başlangıç jerk
+        b_y(4 * n + 2) = m_jerk.y;  // Y ekseni için başlangıç jerk
+        b_z(4 * n + 2) = m_jerk.z;  // Z ekseni için başlangıç jerk
     }
     
     // 4. Jerk sürekliliği (Jerk Continuity)
@@ -846,31 +860,26 @@ void TrajectoryGenerator::solveMinimumSnap() {
     Eigen::VectorXd coeffs_x = A.colPivHouseholderQr().solve(b_x);
     Eigen::VectorXd coeffs_y = A.colPivHouseholderQr().solve(b_y);
     Eigen::VectorXd coeffs_z = A.colPivHouseholderQr().solve(b_z);
-
+    bool asd = true;
     // Çözülen katsayıları kullanarak konumları ve psi'yi zaman adımlarıyla yayınla
     ros::Rate loop_rate(m_ros_rate); // Config dosyasından alınan ROS rate
-    for (double t = times_mod[0]; t <= times_mod[n]; t += 0.05) {  // Zaman adımlarıyla ilerle
+    for (double t = times_mod[0]; t <= times_mod[n]; t += 0.075) {  // Zaman adımlarıyla ilerle
         
         // Hangi segmentte olduğumuzu bulalım
         int i = 0;
         while (i < n && t > times_mod[i + 1]) {
             i++;
         }
-
-        // 4. segmente ulaşıldığında yeni waypoint seti iste
-        if (i == 3 && getTrajectoryFromServer()) {
-            ROS_INFO("New waypoint set received. The trajectory will be generated again.");
-            generateTrajectory();  // Yeni verilerle yörüngeyi yeniden başlat
-            return;
-        }
-
+      
         double dt = t - times_mod[i];
+        ROS_INFO("t: %f", t);
         double pos_x = coeffs_x(8 * i + 0) + coeffs_x(8 * i + 1) * dt + coeffs_x(8 * i + 2) * std::pow(dt, 2) +
                     coeffs_x(8 * i + 3) * std::pow(dt, 3) + coeffs_x(8 * i + 4) * std::pow(dt, 4) + coeffs_x(8 * i + 5) * std::pow(dt, 5) + coeffs_x(8 * i + 6) * std::pow(dt, 6) + coeffs_x(8 * i + 7) * std::pow(dt, 7);
         double pos_y = coeffs_y(8 * i + 0) + coeffs_y(8 * i + 1) * dt + coeffs_y(8 * i + 2) * std::pow(dt, 2) +
                     coeffs_y(8 * i + 3) * std::pow(dt, 3) + coeffs_y(8 * i + 4) * std::pow(dt, 4) + coeffs_y(8 * i + 5) * std::pow(dt, 5) + coeffs_y(8 * i + 6) * std::pow(dt, 6) + coeffs_y(8 * i + 7) * std::pow(dt, 7);
         double pos_z = coeffs_z(8 * i + 0) + coeffs_z(8 * i + 1) * dt + coeffs_z(8 * i + 2) * std::pow(dt, 2) +
                     coeffs_z(8 * i + 3) * std::pow(dt, 3) + coeffs_z(8 * i + 4) * std::pow(dt, 4) + coeffs_z(8 * i + 5) * std::pow(dt, 5) + coeffs_z(8 * i + 6) * std::pow(dt, 6) + coeffs_z(8 * i + 7) * std::pow(dt, 7);
+        //ROS_INFO("x: %f   y: %f   z: %f", pos_x, pos_y, pos_z);
         
         double vel_x = coeffs_x(8 * i + 1) + 2 * coeffs_x(8 * i + 2) * dt +
                     3 * coeffs_x(8 * i + 3) * std::pow(dt, 2) + 4 * coeffs_x(8 * i + 4) * std::pow(dt, 3) + 5 * coeffs_x(8 * i + 5) * std::pow(dt, 4) + 6 * coeffs_x(8 * i + 6) * std::pow(dt, 5) + 7 * coeffs_x(8 * i + 7) * std::pow(dt, 6);
@@ -907,10 +916,18 @@ void TrajectoryGenerator::solveMinimumSnap() {
         m_jerk.y = jerk_y;
         m_jerk.z = jerk_z;
 
+        // 3. segmente ulaşıldığında yeni waypoint seti iste
+        if (i == 3 && getTrajectoryFromServer()) {
+            ROS_INFO("New waypoint set received. The trajectory will be generated again.");
+            generateTrajectory();  // Yeni verilerle yörüngeyi yeniden başlat
+            return;
+        }
+
         // Mesajları yayınla
         m_position_pub.publish(m_position);
         m_velocity_pub.publish(m_velocity);
         m_acceleration_pub.publish(m_acceleration);
+
         ros::spinOnce();
         loop_rate.sleep();
     }

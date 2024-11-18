@@ -20,30 +20,30 @@ public:
 
 private:
     // ROS node handle, publishers, and subscribers
-    ros::NodeHandle nh;
-    ros::Subscriber position_sub;
-    ros::Subscriber current_position_sub;
-    ros::Subscriber current_euler_sub;
-    ros::Publisher thrust_pub;
-    ros::Publisher ref_angles_pub;
+    ros::NodeHandle m_nh;
+    ros::Subscriber m_desired_position_sub;
+    ros::Subscriber m_current_position_sub;
+    ros::Subscriber m_current_euler_sub;
+    ros::Publisher m_desired_thrust_pub;
+    ros::Publisher m_desired_angles_pub;
 
     // Target and current positions
-    double reference_x, reference_y, reference_z, reference_psi;
-    double current_x, current_y, current_z;
-    double current_phi, current_theta, current_psi;
+    double m_reference_x, m_reference_y, m_reference_z, m_reference_psi;
+    double m_current_x, m_current_y, m_current_z;
+    double m_current_phi, m_current_theta, m_current_psi;
 
     // PID gains and parameters
-    double kp_thrust, ki_thrust, kd_thrust;
-    double kp_phi, ki_phi, kd_phi;
-    double kp_theta, ki_theta, kd_theta;
-    double min_thrust, max_thrust;
-    double integral_min, integral_max;
-    double dt;
+    double m_kp_thrust, m_ki_thrust, m_kd_thrust;
+    double m_kp_phi, m_ki_phi, m_kd_phi;
+    double m_kp_theta, m_ki_theta, m_kd_theta;
+    double m_min_thrust, m_max_thrust;
+    double m_integral_min, m_integral_max;
+    double m_dt;
 
     // PID state variables
-    double prev_error_thrust, integral_thrust;
-    double prev_error_ref_phi, integral_ref_phi;
-    double prev_error_ref_theta, integral_ref_theta;
+    double m_prev_error_thrust, m_integral_thrust;
+    double m_prev_error_ref_phi, m_integral_ref_phi;
+    double m_prev_error_ref_theta, m_integral_ref_theta;
 
     // Core functions
     double computeThrust();

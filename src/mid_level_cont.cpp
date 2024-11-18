@@ -21,40 +21,40 @@ double computePID(double setpoint, double measured_value, double& prev_error, do
 }
 
 MidLevelController::MidLevelController() 
-    : reference_x(0.0), reference_y(0.0), reference_z(0.0), reference_psi(0.0),
-      current_x(0.0), current_y(0.0), current_z(0.0),
-      current_phi(0.0), current_theta(0.0), current_psi(0.0),
-      prev_error_thrust(0.0), integral_thrust(0.0),
-      prev_error_ref_phi(0.0), integral_ref_phi(0.0),
-      prev_error_ref_theta(0.0), integral_ref_theta(0.0) {
+    : m_reference_x(0.0), m_reference_y(0.0), m_reference_z(0.0), m_reference_psi(0.0),
+      m_current_x(0.0), m_current_y(0.0), m_current_z(0.0),
+      m_current_phi(0.0), m_current_theta(0.0), m_current_psi(0.0),
+      m_prev_error_thrust(0.0), m_integral_thrust(0.0),
+      m_prev_error_ref_phi(0.0), m_integral_ref_phi(0.0),
+      m_prev_error_ref_theta(0.0), m_integral_ref_theta(0.0) {
 
     // Load parameters from the parameter server
-    nh.getParam("mid_level_controller/kp_thrust", kp_thrust);
-    nh.getParam("mid_level_controller/ki_thrust", ki_thrust);
-    nh.getParam("mid_level_controller/kd_thrust", kd_thrust);
-    nh.getParam("mid_level_controller/kp_phi", kp_phi);
-    nh.getParam("mid_level_controller/ki_phi", ki_phi);
-    nh.getParam("mid_level_controller/kd_phi", kd_phi);
-    nh.getParam("mid_level_controller/kp_theta", kp_theta);
-    nh.getParam("mid_level_controller/ki_theta", ki_theta);
-    nh.getParam("mid_level_controller/kd_theta", kd_theta);
-    nh.getParam("mid_level_controller/dt", dt);
-    nh.getParam("mid_level_controller/min_thrust", min_thrust);
-    nh.getParam("mid_level_controller/max_thrust", max_thrust);
-    nh.getParam("mid_level_controller/integral_min", integral_min);
-    nh.getParam("mid_level_controller/integral_max", integral_max);
+    m_nh.getParam("mid_level_controller/kp_thrust", m_kp_thrust);
+    m_nh.getParam("mid_level_controller/ki_thrust", m_ki_thrust);
+    m_nh.getParam("mid_level_controller/kd_thrust", m_kd_thrust);
+    m_nh.getParam("mid_level_controller/kp_phi", m_kp_phi);
+    m_nh.getParam("mid_level_controller/ki_phi", m_ki_phi);
+    m_nh.getParam("mid_level_controller/kd_phi", m_kd_phi);
+    m_nh.getParam("mid_level_controller/kp_theta", m_kp_theta);
+    m_nh.getParam("mid_level_controller/ki_theta", m_ki_theta);
+    m_nh.getParam("mid_level_controller/kd_theta", m_kd_theta);
+    m_nh.getParam("mid_level_controller/dt", m_dt);
+    m_nh.getParam("mid_level_controller/min_thrust", m_min_thrust);
+    m_nh.getParam("mid_level_controller/max_thrust", m_max_thrust);
+    m_nh.getParam("mid_level_controller/integral_min", m_integral_min);
+    m_nh.getParam("mid_level_controller/integral_max", m_integral_max);
 
     // Initialize subscribers and publishers
-    position_sub = nh.subscribe("/reference_position", 10, &MidLevelController::positionCallback, this);
-    current_position_sub = nh.subscribe("/actual_position", 10, &MidLevelController::currentPositionCallback, this);
-    current_euler_sub = nh.subscribe("/actual_euler_angles", 10, &MidLevelController::currentEulerCallback, this);
+    m_desired_position_sub = m_nh.subscribe("/reference_position", 10, &MidLevelController::positionCallback, this);
+    m_current_position_sub = m_nh.subscribe("/actual_position", 10, &MidLevelController::currentPositionCallback, this);
+    m_current_euler_sub = m_nh.subscribe("/actual_euler_angles", 10, &MidLevelController::currentEulerCallback, this);
 
-    thrust_pub = nh.advertise<std_msgs::Float64>("/reference_thrust", 10);
-    ref_angles_pub = nh.advertise<geometry_msgs::Vector3>("/reference_euler_angles", 10);
+    m_desired_thrust_pub = m_nh.advertise<std_msgs::Float64>("/reference_thrust", 10);
+    m_desired_angles_pub = m_nh.advertise<geometry_msgs::Vector3>("/reference_euler_angles", 10);
 }
 
 void MidLevelController::spin() {
-    ros::Rate rate(1/dt); 
+    ros::Rate rate(1 / m_dt); 
     while (ros::ok()) {
         ros::spinOnce();
 
@@ -67,26 +67,26 @@ void MidLevelController::spin() {
 }
 
 double MidLevelController::computeThrust() {
-    double thrust = MidLevelNS::computePID(reference_z, current_z, prev_error_thrust, integral_thrust,
-                               kp_thrust, ki_thrust, kd_thrust, dt, integral_min, integral_max) + 0.382 * 9.81;
-    return applyThrustSaturation(thrust, min_thrust, max_thrust);
+    double thrust = MidLevelNS::computePID(m_reference_z, m_current_z, m_prev_error_thrust, m_integral_thrust,
+                               m_kp_thrust, m_ki_thrust, m_kd_thrust, m_dt, m_integral_min, m_integral_max) + 0.382 * 9.81;
+    return applyThrustSaturation(thrust, m_min_thrust, m_max_thrust);
 }
 
 geometry_msgs::Vector3 MidLevelController::computeReferenceAngles() {
     geometry_msgs::Vector3 ref_angles;
-    ref_angles.x = MidLevelNS::computePID(reference_y, current_y, prev_error_ref_phi, integral_ref_phi,
-                              kp_phi, ki_phi, kd_phi, dt, integral_min, integral_max);
-    ref_angles.y = MidLevelNS::computePID(reference_x, current_x, prev_error_ref_theta, integral_ref_theta,
-                              kp_theta, ki_theta, kd_theta, dt, integral_min, integral_max);
-    ref_angles.z = reference_psi;
+    ref_angles.x = MidLevelNS::computePID(m_reference_y, m_current_y, m_prev_error_ref_phi, m_integral_ref_phi,
+                              m_kp_phi, m_ki_phi, m_kd_phi, m_dt, m_integral_min, m_integral_max);
+    ref_angles.y = MidLevelNS::computePID(m_reference_x, m_current_x, m_prev_error_ref_theta, m_integral_ref_theta,
+                              m_kp_theta, m_ki_theta, m_kd_theta, m_dt, m_integral_min, m_integral_max);
+    ref_angles.z = m_reference_psi;
     return ref_angles;
 }
 
 void MidLevelController::publishControlSignals(double thrust, const geometry_msgs::Vector3& ref_angles) {
     std_msgs::Float64 thrust_msg;
     thrust_msg.data = thrust;
-    thrust_pub.publish(thrust_msg);
-    ref_angles_pub.publish(ref_angles);
+    m_desired_thrust_pub.publish(thrust_msg);
+    m_desired_angles_pub.publish(ref_angles);
 }
 
 double MidLevelController::applyThrustSaturation(double thrust, double min_thrust, double max_thrust) {
@@ -94,19 +94,19 @@ double MidLevelController::applyThrustSaturation(double thrust, double min_thrus
 }
 
 void MidLevelController::positionCallback(const geometry_msgs::Vector3::ConstPtr& msg) {
-    reference_x = msg->x;
-    reference_y = msg->y;
-    reference_z = msg->z;
+    m_reference_x = msg->x;
+    m_reference_y = msg->y;
+    m_reference_z = msg->z;
 }
 
 void MidLevelController::currentPositionCallback(const geometry_msgs::Vector3::ConstPtr& msg) {
-    current_x = msg->x;
-    current_y = msg->y;
-    current_z = msg->z;
+    m_current_x = msg->x;
+    m_current_y = msg->y;
+    m_current_z = msg->z;
 }
 
 void MidLevelController::currentEulerCallback(const geometry_msgs::Vector3::ConstPtr& msg) {
-    current_phi = msg->x;
-    current_theta = msg->y;
-    current_psi = msg->z;
+    m_current_phi = msg->x;
+    m_current_theta = msg->y;
+    m_current_psi = msg->z;
 }

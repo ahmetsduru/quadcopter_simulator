@@ -52,10 +52,11 @@ void LowLevelController::spin() {
     while (ros::ok()) {
         ros::spinOnce();
 
-        double torque1 = LowLevelNS::computePID(reference_phi, current_phi, prev_error_torque1, integral_torque1, kp_torque1, ki_torque1, kd_torque1, dt, integral_min, integral_max);
+        double torque1 = LowLevelNS::computePID(reference_phi, current_phi, prev_error_torque1,
+         integral_torque1, kp_torque1, ki_torque1, kd_torque1, dt, integral_min, integral_max);
+         
         double torque2 = LowLevelNS::computePID(reference_theta, current_theta, prev_error_torque2, integral_torque2, kp_torque2, ki_torque2, kd_torque2, dt, integral_min, integral_max);
         double torque3 = LowLevelNS::computePID(reference_psi, current_psi, prev_error_torque3, integral_torque3, kp_torque3, ki_torque3, kd_torque3, dt, integral_min, integral_max);
-
         publishTorques(torque1, torque2, torque3);
 
         rate.sleep();

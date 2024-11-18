@@ -52,7 +52,7 @@ low_level_controller:
   kd_torque3: 0.01
 
   integral_min: 0.0
-  integral_max: 0.3
+  integral_max: 0.01
 
   dt: 0.01            # Time step for 100 Hz
 

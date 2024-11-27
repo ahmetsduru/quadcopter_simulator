@@ -30,3 +30,4 @@ plot_acc_x_y_z_t(log_folder);
 plot_vel_x_y_z_t(log_folder);
 plot_pos_x_y_z_t(log_folder);
 plot_rpy_t(log_folder);
+plot_rpy_t_degree(log_folder);

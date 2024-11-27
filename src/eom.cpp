@@ -68,7 +68,7 @@ private:
     // Load parameters from the ROS parameter server
     void loadParameters(ros::NodeHandle& nh) {
         std::vector<double> inertia_values, gravity_values, drag_coefficients_trans, A_frame, impulse_force_vec, impulse_torque_vec;
-        nh.getParam("state_derivative_solver_node/m", m);
+        nh.getParam("state_derivative_solver_node/mass", m);
         nh.getParam("state_derivative_solver_node/I", inertia_values);
         nh.getParam("state_derivative_solver_node/g", gravity_values);
         nh.getParam("state_derivative_solver_node/dt", dt);

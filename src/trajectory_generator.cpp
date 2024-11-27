@@ -1,11 +1,14 @@
 #include "../include/quadcopter_control/trajectory_generator.h"
 
 TrajectoryGenerator::TrajectoryGenerator(ros::NodeHandle& nh) 
-    : m_no_more_trajectory(false), m_initial_trajectory(true) {
-    m_position_pub = nh.advertise<geometry_msgs::Vector3>("reference_position", 10);
-    m_velocity_pub = nh.advertise<geometry_msgs::Vector3>("reference_velocity", 10);
-    m_acceleration_pub = nh.advertise<geometry_msgs::Vector3>("reference_acceleration", 10);
+    : m_no_more_trajectory(false), m_initial_trajectory(true), m_is_psi_active(true) {
+    m_position_pub = nh.advertise<geometry_msgs::Vector3>("/reference_position", 10);
+    m_velocity_pub = nh.advertise<geometry_msgs::Vector3>("/reference_velocity", 10);
+    m_acceleration_pub = nh.advertise<geometry_msgs::Vector3>("/reference_acceleration", 10);
+    m_desired_psi_pub = nh.advertise<std_msgs::Float64>("/reference_psi", 10);
     m_trajectory_client = nh.serviceClient<quadcopter_control::WaypointService>("get_trajectory");
+
+    nh.param("trajectory_manager/is_psi_active", m_is_psi_active, true); 
 
     if (getTrajectoryFromServer()) {
         ROS_INFO("Trajectory data received from server.");
@@ -375,11 +378,22 @@ void TrajectoryGenerator::solveCubicSpline() {
         m_velocity_pub.publish(m_velocity);
         m_acceleration_pub.publish(m_acceleration);
         
+        // 3. segmente ulaşıldığında yeni waypoint seti iste
         if (i == 3 && getTrajectoryFromServer()) {
             ROS_INFO("New waypoint set received. The trajectory will be generated again.");
-            generateTrajectory();
+            generateTrajectory();  // Yeni verilerle yörüngeyi yeniden başlat
             return;
         }
+
+        generatePsi();
+
+        // Mesajları yayınla
+        std_msgs::Float64 psi_msg;
+        psi_msg.data = m_des_psi;
+        m_desired_psi_pub.publish(psi_msg);
+        m_position_pub.publish(m_position);
+        m_velocity_pub.publish(m_velocity);
+        m_acceleration_pub.publish(m_acceleration);
 
         ros::spinOnce();
         loop_rate.sleep();
@@ -609,6 +623,16 @@ void TrajectoryGenerator::solveMinimumJerk() {
             generateTrajectory();  // Yeni verilerle yörüngeyi yeniden başlat
             return;
         }
+
+        generatePsi();
+
+        // Mesajları yayınla
+        std_msgs::Float64 psi_msg;
+        psi_msg.data = m_des_psi;
+        m_desired_psi_pub.publish(psi_msg);
+        m_position_pub.publish(m_position);
+        m_velocity_pub.publish(m_velocity);
+        m_acceleration_pub.publish(m_acceleration);
 
         ros::spinOnce();
         loop_rate.sleep();
@@ -872,7 +896,7 @@ void TrajectoryGenerator::solveMinimumSnap() {
         }
       
         double dt = t - times_mod[i];
-        ROS_INFO("t: %f", t);
+        //ROS_INFO("t: %f", t);
         double pos_x = coeffs_x(8 * i + 0) + coeffs_x(8 * i + 1) * dt + coeffs_x(8 * i + 2) * std::pow(dt, 2) +
                     coeffs_x(8 * i + 3) * std::pow(dt, 3) + coeffs_x(8 * i + 4) * std::pow(dt, 4) + coeffs_x(8 * i + 5) * std::pow(dt, 5) + coeffs_x(8 * i + 6) * std::pow(dt, 6) + coeffs_x(8 * i + 7) * std::pow(dt, 7);
         double pos_y = coeffs_y(8 * i + 0) + coeffs_y(8 * i + 1) * dt + coeffs_y(8 * i + 2) * std::pow(dt, 2) +
@@ -923,7 +947,12 @@ void TrajectoryGenerator::solveMinimumSnap() {
             return;
         }
 
+        generatePsi();
+
         // Mesajları yayınla
+        std_msgs::Float64 psi_msg;
+        psi_msg.data = m_des_psi;
+        m_desired_psi_pub.publish(psi_msg);
         m_position_pub.publish(m_position);
         m_velocity_pub.publish(m_velocity);
         m_acceleration_pub.publish(m_acceleration);
@@ -932,3 +961,83 @@ void TrajectoryGenerator::solveMinimumSnap() {
         loop_rate.sleep();
     }
 }
+
+void TrajectoryGenerator::generatePsi() {
+    const double alpha = 0.02; // Filtre katsayısı (0 < alpha < 1)
+
+    if (m_is_psi_active) {
+        if (std::isfinite(m_velocity.x) && std::isfinite(m_velocity.y)) {
+            if (!(m_velocity.x == 0.0 && m_velocity.y == 0.0)) {
+                double new_psi = atan2(m_velocity.y, m_velocity.x);
+
+                // Açı normalizasyonu [-π, π] aralığında
+                while (new_psi > M_PI) new_psi -= 2.0 * M_PI;
+                while (new_psi < -M_PI) new_psi += 2.0 * M_PI;
+
+                // Düşük geçiş filtresi uygulama
+                m_des_psi = alpha * new_psi + (1.0 - alpha) * m_last_psi;
+
+                // m_des_psi için de normalizasyon yap
+                while (m_des_psi > M_PI) m_des_psi -= 2.0 * M_PI;
+                while (m_des_psi < -M_PI) m_des_psi += 2.0 * M_PI;
+
+                m_last_psi = m_des_psi;
+
+                ROS_INFO("Filtered and normalized des psi: %f", m_des_psi);
+            } else {
+                m_des_psi = m_last_psi;
+                ROS_WARN("Velocity is zero. Using last psi: %f", m_last_psi);
+            }
+        } else {
+            ROS_WARN("Invalid velocity values detected: x = %f, y = %f. Setting m_des_psi to last psi: %f.",
+                     m_velocity.x, m_velocity.y, m_last_psi);
+            m_des_psi = m_last_psi;
+        }
+    } else {
+        m_des_psi = 0.0;
+        ROS_INFO("Psi is inactive. Setting des psi to default: %f", m_des_psi);
+    }
+}
+
+
+
+/*void TrajectoryGenerator::generatePsi() {
+    if (m_is_psi_active) {
+        // Kompleks sayılarla hız vektörü (m_velocity.x, m_velocity.y)
+        std::complex<double> target_velocity(m_velocity.x, m_velocity.y);
+
+        // Hedef yön: birim uzunlukta kompleks sayı
+        std::complex<double> target_direction = target_velocity / std::abs(target_velocity);
+
+        // Mevcut yön: birim uzunlukta kompleks sayı (şu anki açı)
+        std::complex<double> current_direction = std::polar(1.0, m_des_psi);
+
+        // Kompleks fark: hedefe olan dönüşü temsil eden kompleks sayı
+        std::complex<double> delta_direction = target_direction / current_direction;
+
+        // Hedefe kademeli geçiş için düşük geçişli filtre katsayısı
+        const double alpha = 0.01; // 0.0 ile 1.0 arasında, geçiş hızını ayarlar
+
+        // Delta'yı alpha ile ölçeklendir ve yeni yönü hesapla
+        std::complex<double> scaled_delta_direction = std::polar(1.0, alpha * std::arg(delta_direction));
+        current_direction *= scaled_delta_direction;
+
+        // Yeni açıyı kompleks sayıdan al
+        m_des_psi = std::arg(current_direction); // Mevcut yönün faz açısı
+    } else {
+        m_des_psi = 0.0;
+    }
+}*/
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,5 +1,6 @@
 trajectory_manager:
-  active_trajectories: ["trajectory_random", "trajectory_random_2", "trajectory_random_3"]  # Birden fazla yörünge seçilebilir
+  is_psi_active: true
+  active_trajectories: ["trajectory_random", "trajectory_random_2", "trajectory_random_3", "trajectory_crescent"]  # Birden fazla yörünge seçilebilir
   available_trajectory:
     - name: "trajectory_hover"
       file: "trajectory_hover.yaml"  
@@ -13,9 +14,3 @@ trajectory_manager:
       file: "trajectory_random_3.yaml"
     - name: "trajectory_pid_tuning"
       file: "trajectory_pid_tuning.yaml"
-
-
-
-
-
-

@@ -10,6 +10,7 @@ RVizDataHandler::RVizDataHandler(ros::NodeHandle& nh)
     reference_pose_array_pub = nh.advertise<geometry_msgs::PoseArray>("/rviz_reference_pose_array", 10);
     impulse_force_marker_pub = nh.advertise<visualization_msgs::Marker>("/rviz_impulse_force_marker", 10);
     impulse_torque_marker_pub = nh.advertise<visualization_msgs::Marker>("/rviz_impulse_torque_marker", 10);
+    waypoints_marker_pub = nh.advertise<visualization_msgs::Marker>("/rviz_waypoints_marker", 10, true);
 
     // Initialize subscribers
     actual_pose_sub = nh.subscribe("/rviz_quad_pose", 10, &RVizDataHandler::actualPoseCallback, this);
@@ -17,6 +18,7 @@ RVizDataHandler::RVizDataHandler(ros::NodeHandle& nh)
     reference_position_sub = nh.subscribe("/reference_position", 10, &RVizDataHandler::referencePositionCallback, this);
     impulse_force_sub = nh.subscribe("/actual_impulse_force", 10, &RVizDataHandler::impulseForceCallback, this);
     impulse_torque_sub = nh.subscribe("/actual_impulse_torque", 10, &RVizDataHandler::impulseTorqueCallback, this);
+    waypoints_sub = nh.subscribe("/waypoints", 10, &RVizDataHandler::waypointsCallback, this);
 
     last_actual_pose_publish_time = ros::Time::now();
     last_reference_pose_publish_time = ros::Time::now();
@@ -26,6 +28,7 @@ RVizDataHandler::RVizDataHandler(ros::NodeHandle& nh)
     pose_publish_interval = ros::Duration(1.0);
     impulse_force_marker_id = 0;
     impulse_torque_marker_id = 0;
+    waypoint_marker_id = 0; // Waypoint marker için ID
 }
 
 void RVizDataHandler::actualPoseCallback(const geometry_msgs::PoseStamped::ConstPtr& pose_msg)
@@ -110,6 +113,50 @@ void RVizDataHandler::visualizeVector(const geometry_msgs::Vector3& vector, cons
     marker.scale.x = 0.01;
     marker.scale.y = 0.05;
     marker.scale.z = 0.03;
+    marker.color = color;
+
+    marker_pub.publish(marker);
+}
+
+void RVizDataHandler::waypointsCallback(const geometry_msgs::Vector3::ConstPtr& waypoint_msg)
+{
+    // Waypoint pozisyonunu belirle
+    geometry_msgs::Point position;
+    position.x = waypoint_msg->x;
+    position.y = waypoint_msg->y;
+    position.z = waypoint_msg->z;
+
+    // Nokta rengi
+    std_msgs::ColorRGBA color;
+    color.r = 0.4; // Kırmızı
+    color.g = 0.4;
+    color.b = 1.0;
+    color.a = 1.0; // Tam opaklık
+
+    // Marker subscriber bağlantısını bekle
+    while (waypoints_marker_pub.getNumSubscribers() == 0) {
+        ROS_WARN("Waiting for subscribers to connect to /rviz_waypoints_marker...");
+        ros::Duration(0.1).sleep(); // 100 ms bekleyin
+    }
+
+    // Marker oluştur ve yayınla
+    visualizePoint(position, waypoints_marker_pub, "waypoints", waypoint_marker_id, color);
+}
+
+void RVizDataHandler::visualizePoint(const geometry_msgs::Point& position, ros::Publisher& marker_pub, const std::string& ns, int& id, const std_msgs::ColorRGBA& color)
+{
+    visualization_msgs::Marker marker;
+    marker.header.frame_id = "world";
+    marker.header.stamp = ros::Time::now();
+    marker.ns = ns;
+    marker.id = id++;
+    marker.type = visualization_msgs::Marker::SPHERE; // Nokta olarak görselleştirme
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.pose.position = position;
+    marker.pose.orientation.w = 1.0; // Orientation gereksiz, ancak varsayılan birim quaternion ayarlandı
+    marker.scale.x = 0.2; // Noktanın boyutu
+    marker.scale.y = 0.2;
+    marker.scale.z = 0.2;
     marker.color = color;
 
     marker_pub.publish(marker);

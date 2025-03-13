@@ -51,6 +51,7 @@ private:
     double m_min_thrust, m_max_thrust;
     double m_integral_min, m_integral_max;
     double m_dt;
+    double m_mass;
 
     // PID state variables
     double m_prev_error_thrust_x, m_integral_thrust_x;

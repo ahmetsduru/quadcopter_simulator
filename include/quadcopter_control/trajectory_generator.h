@@ -27,6 +27,7 @@ private:
     ros::Publisher m_velocity_pub;
     ros::Publisher m_acceleration_pub;
     ros::Publisher m_desired_psi_pub;
+    ros::Publisher m_waypoints_pub;
     ros::ServiceClient m_trajectory_client;
     std::vector<double> m_points_x, m_points_y, m_points_z, m_times;
     double m_ros_rate;

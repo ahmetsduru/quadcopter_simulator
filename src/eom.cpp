@@ -132,15 +132,15 @@ private:
         t = 0.0;
     }
 
-    // Update thrust and torques
-    void updateThrustAndTorques() {
+    // Update thrust and torques 
+    void updateThrustAndTorques() { //SİL
         updateThrust(thrust, thrust_actual, tau_thrust, dt);
         updateTorques(torques, torques_actual, tau_torque, dt);
     }
 
     // Perform ODE integration
     void performODEIntegration() {
-        updateThrustAndTorques();
+        updateThrustAndTorques(); //SİL
 
         Eigen::Vector4d rotor_speeds;
         getRotorSpeeds(thrust_actual, torques_actual, kt_coeff, km_coeff, l, rotor_speeds);
@@ -173,14 +173,14 @@ private:
         t += dt;
     }
 
-    // Compute rotor speeds from thrust and torques
-    void getRotorSpeeds(double thrust, const Eigen::Vector3d& torques, double kt_coeff, double km_coeff, double l, Eigen::Vector4d& omega) {
+    void getRotorSpeeds(double thrust, const Eigen::Vector3d& torques, double kt_coeff, double km_coeff, double l, Eigen::Vector4d& omega) { 
         Eigen::Vector4d omega_squared;
         computeRotorSpeeds(thrust, torques, kt_coeff, km_coeff, l, omega_squared);
         omega(0) = sqrt(omega_squared(0));
         omega(1) = sqrt(omega_squared(1));
         omega(2) = sqrt(omega_squared(2));
         omega(3) = sqrt(omega_squared(3));
+        //ROS_INFO_STREAM("Computed omega values (rad/s): " << omega.transpose());
     }
 
     void computeRotorSpeeds(double thrust, const Eigen::Vector3d& torques, double kt_coeff, double km_coeff, double l, Eigen::Vector4d& omega_squared) {
@@ -194,10 +194,9 @@ private:
              km_coeff, km_coeff, -km_coeff, -km_coeff;
 
         b << thrust, torques[0], torques[1], torques[2];
-        omega_squared = A.colPivHouseholderQr().solve(b);
+        omega_squared = A.colPivHouseholderQr().solve(b);   
     }
 
-    // Publish the state (position, velocity, etc.)
     void publishState() {
         geometry_msgs::Vector3 pos_msg;
         pos_msg.x = x[0];
@@ -299,12 +298,12 @@ private:
         return Eigen::Vector3d::Zero();
     }
 
-    void updateThrust(double thrust_desired, double& thrust_actual, double tau_thrust, double dt) {
+    void updateThrust(double thrust_desired, double& thrust_actual, double tau_thrust, double dt) { 
         double dF = (1.0 / tau_thrust) * (thrust_desired - thrust_actual);
         thrust_actual += dF * dt;
     }
 
-    void updateTorques(const Eigen::Vector3d& torques_desired, Eigen::Vector3d& torques_actual, double tau_torque, double dt) {
+    void updateTorques(const Eigen::Vector3d& torques_desired, Eigen::Vector3d& torques_actual, double tau_torque, double dt) { 
         Eigen::Vector3d dTau = (1.0 / tau_torque) * (torques_desired - torques_actual);
         torques_actual += dTau * dt;
     }
@@ -335,11 +334,11 @@ private:
         dxdt[13] = dV[1];
         dxdt[14] = dV[2];
 
-        Eigen::Vector3d drag_torques = computeDragTorques(rotor_speeds, rho, Cd_rot, l, A_rotor, km_coeff);
-        Eigen::Vector3d gyro_torques = computeGyroscopicTorque(w, rotor_speeds, I_rotor);
+        //Eigen::Vector3d drag_torques = computeDragTorques(rotor_speeds, rho, Cd_rot, l, A_rotor, km_coeff);
+        //Eigen::Vector3d gyro_torques = computeGyroscopicTorque(w, rotor_speeds, I_rotor);
         Eigen::Vector3d impulse_torque = applyImpulseTorque(t);
         Eigen::Vector3d wxIw = skew_w * (I * w);
-        Eigen::Vector3d dw = I.inverse() * (torques + drag_torques + gyro_torques + impulse_torque - wxIw);
+        Eigen::Vector3d dw = I.inverse() * (torques + impulse_torque - wxIw);
         dxdt[15] = dw[0];
         dxdt[16] = dw[1];
         dxdt[17] = dw[2];
@@ -351,7 +350,7 @@ private:
         return drag_force;
     }
 
-    Eigen::Vector3d computeDragTorques(const Eigen::Vector4d& omega_squared, double rho, double Cd_rot, double r_propeller, double A_rotor, double km_coeff) {
+    /*Eigen::Vector3d computeDragTorques(const Eigen::Vector4d& omega_squared, double rho, double Cd_rot, double r_propeller, double A_rotor, double km_coeff) {
         double b_term = -0.5 * rho * Cd_rot * A_rotor * std::pow(r_propeller, 2);
         Eigen::Vector4d drag_torques = b_term * omega_squared;
 
@@ -363,7 +362,7 @@ private:
 
         Eigen::Vector3d total_drag_torques = rotor_matrix * drag_torques;
         return total_drag_torques;
-    }
+    }*/
 
     Eigen::Matrix3d skewSymmetric(const Eigen::Vector3d& vec) {
         Eigen::Matrix3d skew;
@@ -373,7 +372,7 @@ private:
         return skew;
     }
 
-    Eigen::Vector3d computeGyroscopicTorque(const Eigen::Vector3d& omega_body, const Eigen::Vector4d& rotor_speeds, double I_rotor) {
+    /*Eigen::Vector3d computeGyroscopicTorque(const Eigen::Vector3d& omega_body, const Eigen::Vector4d& rotor_speeds, double I_rotor) {
         Eigen::Vector4d rotor_directions;
         rotor_directions << -1.0, -1.0, 1.0, 1.0;
 
@@ -383,7 +382,7 @@ private:
             gyro_torque += I_rotor * omega_body.cross(rotor_angular_velocity);
         }
         return gyro_torque;
-    }
+    }*/
 };
 
 int main(int argc, char** argv) {

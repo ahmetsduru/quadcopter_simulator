@@ -6,6 +6,7 @@ TrajectoryGenerator::TrajectoryGenerator(ros::NodeHandle& nh)
     m_velocity_pub = nh.advertise<geometry_msgs::Vector3>("/reference_velocity", 10);
     m_acceleration_pub = nh.advertise<geometry_msgs::Vector3>("/reference_acceleration", 10);
     m_desired_psi_pub = nh.advertise<std_msgs::Float64>("/reference_psi", 10);
+    m_waypoints_pub = nh.advertise<geometry_msgs::Vector3>("/waypoints", 10, true);
     m_trajectory_client = nh.serviceClient<quadcopter_control::WaypointService>("get_trajectory");
 
     nh.param("trajectory_manager/is_psi_active", m_is_psi_active, true); 
@@ -254,6 +255,23 @@ void TrajectoryGenerator::solveCubicSpline() {
         double last_time = times_mod.back() + 7;
         times_mod.push_back(last_time);      
     }
+    
+    // Subscriber'ın bağlanmasını bekle
+    while (m_waypoints_pub.getNumSubscribers() == 0) {
+        ROS_WARN("Waiting for subscribers to connect to /waypoints...");
+        ros::Duration(0.1).sleep();
+    }
+
+    geometry_msgs::Vector3 waypoint_msg;
+
+    for (size_t i = 0; i < points_x_mod.size(); ++i) {
+        waypoint_msg.x = points_x_mod[i];
+        waypoint_msg.y = points_y_mod[i];
+        waypoint_msg.z = points_z_mod[i];
+
+        m_waypoints_pub.publish(waypoint_msg);
+        ROS_INFO("Published waypoint: x=%f, y=%f, z=%f", waypoint_msg.x, waypoint_msg.y, waypoint_msg.z);
+    }
 
     int n = points_x_mod.size() - 1; // Segment sayısı, nokta sayısından bir eksik
     int matrix_size = 4 * n;     // 4n boyutunda matris (a_i, b_i, c_i, d_i)
@@ -335,11 +353,11 @@ void TrajectoryGenerator::solveCubicSpline() {
             i++;
         }
         double dt = t - times_mod[i];
-        ROS_INFO("t: %f", dt);
+        //ROS_INFO("t: %f", dt);
         double pos_x = coeffs_x(4 * i + 0) + coeffs_x(4 * i + 1) * dt + coeffs_x(4 * i + 2) * std::pow(dt, 2) + coeffs_x(4 * i + 3) * std::pow(dt, 3);
         double pos_y = coeffs_y(4 * i + 0) + coeffs_y(4 * i + 1) * dt + coeffs_y(4 * i + 2) * std::pow(dt, 2) + coeffs_y(4 * i + 3) * std::pow(dt, 3);
         double pos_z = coeffs_z(4 * i + 0) + coeffs_z(4 * i + 1) * dt + coeffs_z(4 * i + 2) * std::pow(dt, 2) + coeffs_z(4 * i + 3) * std::pow(dt, 3);
-        ROS_INFO("x: %f   y: %f   z: %f", pos_x, pos_y, pos_z);
+        //ROS_INFO("x: %f   y: %f   z: %f", pos_x, pos_y, pos_z);
 
         double vel_x = coeffs_x(4 * i + 1) + 2 * coeffs_x(4 * i + 2) * dt + 3 * coeffs_x(4 * i + 3) * std::pow(dt, 2);
         double vel_y = coeffs_y(4 * i + 1) + 2 * coeffs_y(4 * i + 2) * dt + 3 * coeffs_y(4 * i + 3) * std::pow(dt, 2);
@@ -417,6 +435,22 @@ void TrajectoryGenerator::solveMinimumJerk() {
         times_mod.push_back(last_time);      
     }
     
+    // Subscriber'ın bağlanmasını bekle
+    while (m_waypoints_pub.getNumSubscribers() == 0) {
+        ROS_WARN("Waiting for subscribers to connect to /waypoints...");
+        ros::Duration(0.1).sleep();
+    }
+
+    geometry_msgs::Vector3 waypoint_msg;
+
+    for (size_t i = 0; i < points_x_mod.size(); ++i) {
+        waypoint_msg.x = points_x_mod[i];
+        waypoint_msg.y = points_y_mod[i];
+        waypoint_msg.z = points_z_mod[i];
+
+        m_waypoints_pub.publish(waypoint_msg);
+        ROS_INFO("Published waypoint: x=%f, y=%f, z=%f", waypoint_msg.x, waypoint_msg.y, waypoint_msg.z);
+    }
 
     int n = points_x_mod.size() - 1; // Segment sayısı
     int matrix_size = 6 * n;     // Minimum jerk polinom çözümü için 6n boyutunda matris
@@ -654,29 +688,25 @@ void TrajectoryGenerator::solveMinimumSnap() {
         points_z_mod.insert(points_z_mod.begin(), m_position.z);
         double last_time = times_mod.back() + 7;
         times_mod.push_back(last_time);      
-
-        // Print points_x_mod
-        std::cout << "points_x_mod: ";
-        for (const auto& x : points_x_mod) {
-            std::cout << x << " ";
-        }
-        std::cout << std::endl;
-
-        // Print points_y_mod
-        std::cout << "points_y_mod: ";
-        for (const auto& y : points_y_mod) {
-            std::cout << y << " ";
-        }
-        std::cout << std::endl;
-
-        // Print points_z_mod
-        std::cout << "points_z_mod: ";
-        for (const auto& z : points_z_mod) {
-            std::cout << z << " ";
-        }
-        std::cout << std::endl;
     }
 
+    // Subscriber'ın bağlanmasını bekle
+    while (m_waypoints_pub.getNumSubscribers() == 0) {
+        ROS_WARN("Waiting for subscribers to connect to /waypoints...");
+        ros::Duration(0.1).sleep();
+    }
+
+    geometry_msgs::Vector3 waypoint_msg;
+
+    for (size_t i = 0; i < points_x_mod.size(); ++i) {
+        waypoint_msg.x = points_x_mod[i];
+        waypoint_msg.y = points_y_mod[i];
+        waypoint_msg.z = points_z_mod[i];
+
+        m_waypoints_pub.publish(waypoint_msg);
+        ROS_INFO("Published waypoint: x=%f, y=%f, z=%f", waypoint_msg.x, waypoint_msg.y, waypoint_msg.z);
+    }
+    
     int n = points_x_mod.size() - 1; // Segment sayısı
     int matrix_size = 8 * n;     // Minimum jerk polinom çözümü için 8n boyutunda matris
     
@@ -963,71 +993,32 @@ void TrajectoryGenerator::solveMinimumSnap() {
 }
 
 void TrajectoryGenerator::generatePsi() {
-    const double alpha = 0.02; // Filtre katsayısı (0 < alpha < 1)
+    const double alpha = 0.05; // Filtre katsayısı (0 < alpha < 1)
 
     if (m_is_psi_active) {
         if (std::isfinite(m_velocity.x) && std::isfinite(m_velocity.y)) {
             if (!(m_velocity.x == 0.0 && m_velocity.y == 0.0)) {
                 double new_psi = atan2(m_velocity.y, m_velocity.x);
 
-                // Açı normalizasyonu [-π, π] aralığında
-                while (new_psi > M_PI) new_psi -= 2.0 * M_PI;
-                while (new_psi < -M_PI) new_psi += 2.0 * M_PI;
-
                 // Düşük geçiş filtresi uygulama
                 m_des_psi = alpha * new_psi + (1.0 - alpha) * m_last_psi;
-
-                // m_des_psi için de normalizasyon yap
-                while (m_des_psi > M_PI) m_des_psi -= 2.0 * M_PI;
-                while (m_des_psi < -M_PI) m_des_psi += 2.0 * M_PI;
-
                 m_last_psi = m_des_psi;
 
-                ROS_INFO("Filtered and normalized des psi: %f", m_des_psi);
+                //ROS_INFO("Filtered and normalized des psi: %f", m_des_psi);
             } else {
                 m_des_psi = m_last_psi;
-                ROS_WARN("Velocity is zero. Using last psi: %f", m_last_psi);
+                //ROS_WARN("Velocity is zero. Using last psi: %f", m_last_psi);
             }
         } else {
-            ROS_WARN("Invalid velocity values detected: x = %f, y = %f. Setting m_des_psi to last psi: %f.",
-                     m_velocity.x, m_velocity.y, m_last_psi);
+            //ROS_WARN("Invalid velocity values detected: x = %f, y = %f. Setting m_des_psi to last psi: %f.", m_velocity.x, m_velocity.y, m_last_psi);
             m_des_psi = m_last_psi;
         }
     } else {
         m_des_psi = 0.0;
-        ROS_INFO("Psi is inactive. Setting des psi to default: %f", m_des_psi);
+        //ROS_INFO("Psi is inactive. Setting des psi to default: %f", m_des_psi);
     }
 }
 
-
-
-/*void TrajectoryGenerator::generatePsi() {
-    if (m_is_psi_active) {
-        // Kompleks sayılarla hız vektörü (m_velocity.x, m_velocity.y)
-        std::complex<double> target_velocity(m_velocity.x, m_velocity.y);
-
-        // Hedef yön: birim uzunlukta kompleks sayı
-        std::complex<double> target_direction = target_velocity / std::abs(target_velocity);
-
-        // Mevcut yön: birim uzunlukta kompleks sayı (şu anki açı)
-        std::complex<double> current_direction = std::polar(1.0, m_des_psi);
-
-        // Kompleks fark: hedefe olan dönüşü temsil eden kompleks sayı
-        std::complex<double> delta_direction = target_direction / current_direction;
-
-        // Hedefe kademeli geçiş için düşük geçişli filtre katsayısı
-        const double alpha = 0.01; // 0.0 ile 1.0 arasında, geçiş hızını ayarlar
-
-        // Delta'yı alpha ile ölçeklendir ve yeni yönü hesapla
-        std::complex<double> scaled_delta_direction = std::polar(1.0, alpha * std::arg(delta_direction));
-        current_direction *= scaled_delta_direction;
-
-        // Yeni açıyı kompleks sayıdan al
-        m_des_psi = std::arg(current_direction); // Mevcut yönün faz açısı
-    } else {
-        m_des_psi = 0.0;
-    }
-}*/
 
 
 

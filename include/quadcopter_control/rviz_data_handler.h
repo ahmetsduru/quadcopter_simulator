@@ -22,11 +22,13 @@ private:
     ros::Publisher actual_path_pub, reference_path_pub;
     ros::Publisher actual_pose_array_pub, reference_pose_array_pub;
     ros::Publisher impulse_force_marker_pub, impulse_torque_marker_pub;
+    ros::Publisher waypoints_marker_pub;
 
     // Subscribers
     ros::Subscriber actual_pose_sub, reference_angles_sub;
     ros::Subscriber reference_position_sub, impulse_force_sub;
     ros::Subscriber impulse_torque_sub;
+    ros::Subscriber waypoints_sub;
 
     // Global variables for paths and poses
     nav_msgs::Path actual_path_msg, reference_path_msg;
@@ -46,6 +48,8 @@ private:
     // Marker IDs for impulse force and torque
     int impulse_force_marker_id;
     int impulse_torque_marker_id;
+    int waypoint_marker_id;
+    int waypoint_counter;
 
     // Callback functions
     void actualPoseCallback(const geometry_msgs::PoseStamped::ConstPtr& pose_msg);
@@ -53,9 +57,11 @@ private:
     void referencePositionCallback(const geometry_msgs::Point::ConstPtr& pos_msg);
     void impulseForceCallback(const geometry_msgs::Vector3::ConstPtr& force_msg);
     void impulseTorqueCallback(const geometry_msgs::Vector3::ConstPtr& torque_msg);
+    void waypointsCallback(const geometry_msgs::Vector3::ConstPtr& waypoint_msg);
 
     // Function to visualize vectors
     void visualizeVector(const geometry_msgs::Vector3& vector, const geometry_msgs::Point& position, ros::Publisher& marker_pub, const std::string& ns, int& id, const std_msgs::ColorRGBA& color);
+    void visualizePoint(const geometry_msgs::Point& position, ros::Publisher& marker_pub, const std::string& ns, int& id, const std_msgs::ColorRGBA& color);
 };
 
 #endif // RVIZ_DATA_HANDLER_H

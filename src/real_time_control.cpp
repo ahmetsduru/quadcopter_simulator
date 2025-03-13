@@ -86,7 +86,7 @@ int main(int argc, char** argv)
     // Initialize the subscribers
     ros::Subscriber vicon_bridge_sub = nh.subscribe("vicon/quad/quad", 10, viconBridgeCallback);
     ros::Subscriber reference_position_sub = nh.subscribe("/reference_position", 10, positionCallback);
-    ros::Subscriber psi_sub = nh.subscribe("/psi", 10, psiCallback);
+    ros::Subscriber psi_sub = nh.subscribe("/reference_psi", 10, psiCallback);
 
     // Services to arm the drone and set the flight mode
     ros::ServiceClient arming_client = nh.serviceClient<mavros_msgs::CommandBool>("mavros/cmd/arming");
